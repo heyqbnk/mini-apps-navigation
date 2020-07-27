@@ -4,11 +4,12 @@ module.exports = {
   extends: ['plugin:@typescript-eslint/recommended'],
   rules: {
     'max-len': ['error', 80, {
-      ignorePattern: '^import|^export| \* @type'
+      ignorePattern: '^import|^export| \* '
     }],
     '@typescript-eslint/camelcase': 0,
     '@typescript-eslint/no-explicit-any': 0,
     '@typescript-eslint/no-empty-interface': 0,
+    '@typescript-eslint/no-empty-function': 0,
     '@typescript-eslint/interface-name-prefix': 0,
     '@typescript-eslint/explicit-function-return-type': 0,
   }
