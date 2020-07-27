@@ -7,6 +7,7 @@ import {
   NavigatorCompleteLocationType,
 } from '../types';
 import {
+  createLogger,
   formatLocation,
   isTechLocation,
 } from '../utils';
@@ -16,12 +17,11 @@ import {
 } from './types';
 
 /**
- * Abstract class which represents navigator which controls current application
- * routing state
+ * Class which represents navigation core. Recommended only for creating
+ * new navigator
+ * @see https://github.com/wolframdeus/mini-apps-navigation/blob/master/src/BrowserNavigator/BrowserNavigator.ts#L18
  */
 export class Navigator {
-  protected readonly logging: boolean;
-
   /**
    * List of bound listeners
    * @type {any[]}
@@ -29,10 +29,12 @@ export class Navigator {
   private listeners: EventListener[] = [];
 
   /**
-   * Locations stack
+   * Locations stack. Represents locations history. First entry should
+   * be a location which has modifier "root" to let navigator know this is
+   * first entry
    * @type {any[]}
    */
-  public locationsStack: NavigatorCompleteLocationType[] = [{
+  locationsStack: NavigatorCompleteLocationType[] = [{
     modifiers: ['root'],
   }];
 
@@ -40,22 +42,18 @@ export class Navigator {
    * Current stack location index
    * @type {number}
    */
-  public locationIndex = 0;
-
-  constructor(props: NavigatorConstructorProps = {}) {
-    const {log = false} = props;
-    this.logging = log;
-    this.log('Instance created');
-  }
+  locationIndex = 0;
 
   /**
    * Logs message into console
-   * @param messages
    */
-  private log(...messages: any[]) {
-    if (this.logging) {
-      console.log('%c[Navigator]:', 'font-weight: bold;', ...messages);
-    }
+  private readonly log: (...messages: any[]) => void;
+
+  constructor(props: NavigatorConstructorProps = {}) {
+    const {log = false} = props;
+
+    this.log = log ? createLogger('Navigator') : () => {};
+    this.log('Instance created');
   }
 
   /**
@@ -73,16 +71,20 @@ export class Navigator {
   }
 
   /**
-   * Pushes location to stack on current position, removing every location
-   * after
+   * Inserts location on current position, removing each location
+   * after it. Works the same as browser history state push 
    * @param {NavigatorCompleteLocationType} location
    * @param options
    */
-  private pushLocationToStack(
+  private insertLocation(
     location: NavigatorCompleteLocationType,
     options: SetLocationOptions = {},
   ) {
+    // Increase location index, due to new location was pushed
     this.locationIndex++;
+    
+    // Take all locations before current one including it and append new 
+    // location
     this.locationsStack = [
       ...this.locationsStack.slice(0, this.locationIndex),
       formatLocation(location),
@@ -124,7 +126,7 @@ export class Navigator {
     // // navigators "back" method. So, we are replacing current location with
     // // "skip" location to prevent going back again when this location met
     // if (modifiers.includes('back')) {
-    //   this.pushLocationToStack({modifiers: ['skip']}, {silent: true});
+    //   this.insertLocation({modifiers: ['skip']}, {silent: true});
     //   return this.go(-2, options);
     // }
 
@@ -144,13 +146,13 @@ export class Navigator {
       const filteredModifiers = modifiers.filter(m => m !== 'shadow');
 
       // Push location with "skip" modifier
-      this.pushLocationToStack({
+      this.insertLocation({
         ...rest,
         modifiers: [...filteredModifiers, 'skip'],
       });
     } else {
       this.log('This location has no special modifiers');
-      this.pushLocationToStack(formattedLocation, options);
+      this.insertLocation(formattedLocation, options);
     }
 
     return {delta: 1, location: this.getLocation()};
