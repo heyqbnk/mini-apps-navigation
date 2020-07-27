@@ -969,11 +969,6 @@
     mkdirp "^0.5.1"
     rimraf "^2.5.2"
 
-"@mini-apps/navigation@^1.1.1":
-  version "1.1.1"
-  resolved "http://verdaccio.base.making.ventures/@mini-apps%2fnavigation/-/navigation-1.1.1.tgz#691b1392fad930dcad50e3ec3db6d68e236b1273"
-  integrity sha512-IWyi6SXLWAGso2yIkTn7KlAm23mvrLn0jfx/NoV8IvErmTDtyqTi3BTqHPOzpvoFhWutkbmZW4CoKOBHXtAJDQ==
-
 "@sindresorhus/is@^0.7.0":
   version "0.7.0"
   resolved "http://verdaccio.base.making.ventures/@sindresorhus%2fis/-/is-0.7.0.tgz#9a06f4f137ee84d7df0460c1fdb1135ffa6c50fd"
