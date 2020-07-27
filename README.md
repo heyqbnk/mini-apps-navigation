@@ -5,6 +5,8 @@
 
 # Navigation [![NPM][npm-badge]][npm-link]
 
+Documentation: [RU](https://github.com/wolframdeus/mini-apps-navigation/blob/master/README-ru.md) / [EN](https://github.com/wolframdeus/mini-apps-navigation/blob/master/README.md)
+
 A package to organize navigation in Mini Apps applications
 
 ## Installation
