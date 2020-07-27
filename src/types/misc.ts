@@ -3,50 +3,35 @@
  */
 export type InternalModifierType =
 /**
- * Means, that normally, this route could be visited only
- * once. For example, it could be used for application alerts which usually
- * are displayed only once. After being visited, this modifier will be replaced
- * with "skip" modifier
+ * Is used to determine first locations stack element. Can be pushed only along
+ * with "replace" modifier.
+ * PRIORITY: 1
  */
-  'shadow' |
+  'root' |
 
   /**
-   * Makes navigator go to previous location in stack
-   */
-  'back' |
-
-  /**
-   * Makes navigator replace current location
+   * Makes navigator replace current location.
+   * PRIORITY: 2
    */
   'replace' |
 
   /**
-   * Makes navigator go to next location
+   * Makes navigator go to previous location.
+   * PRIORITY: 3
+   */
+  'back' |
+
+  /**
+   * Makes navigator go to next location.
+   * PRIORITY: 4
    */
   'forward' |
 
   /**
-   * Makes navigator skip current location
+   * Makes navigator skip current location next time it is visited.
+   * PRIORITY: 5
    */
-  'skip' |
-
-  /**
-   * Is used to determine first locations stack element. Cannot
-   * be pushed. Cannot be used in replacement if currently navigator is not
-   * on the first location on stack
-   */
-  'root';
-
-/**
- * List of modifiers which could be used while pushing location
- */
-export type PushableModifierType = Extract<InternalModifierType,
-  'shadow' | 'back' | 'replace' | 'forward' | 'skip'>;
-
-/**
- * List of modifiers which could be used while replacing location
- */
-export type ReplaceableModifierType = InternalModifierType;
+  'skip';
 
 export interface SetLocationOptions {
   /**
