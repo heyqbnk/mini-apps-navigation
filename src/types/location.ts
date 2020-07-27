@@ -1,6 +1,6 @@
 import {MakePartial, Maybe} from './utils';
 import {ParsedUrlQuery} from 'querystring';
-import {TechLocationModifierType} from './misc';
+import {InternalModifierType} from './misc';
 
 export interface NavigatorLocation {
   /**
@@ -33,7 +33,7 @@ export interface NavigatorLocation {
    * used by Navigator and has a design character, but you could use them for
    * your own purposes
    */
-  modifiers: (TechLocationModifierType | string)[];
+  modifiers: (InternalModifierType | string)[];
 }
 
 /**

@@ -1,7 +1,7 @@
 /**
  * List of reserved by navigator location modifiers
  */
-export type TechLocationModifierType =
+export type InternalModifierType =
 /**
  * Modifier "shadow" means, that normally, this route could be visited only
  * once. For example, it could be used for application alerts which usually
@@ -38,11 +38,6 @@ export type TechLocationModifierType =
    * modifier
    */
   'root';
-
-/**
- * List of all available types for location modifiers
- */
-export type LocationModifierType = TechLocationModifierType | string;
 
 export interface SetLocationOptions {
   /**
