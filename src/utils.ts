@@ -112,9 +112,7 @@ export function fulfillLocation(
 export function formatLocation(
   location: NavigatorLocationType,
 ): NavigatorCompleteLocationType {
-  return location === null
-    ? location
-    : (isTechLocation(location) ? location : fulfillLocation(location));
+  return isTechLocation(location) ? location : fulfillLocation(location);
 }
 
 /**
