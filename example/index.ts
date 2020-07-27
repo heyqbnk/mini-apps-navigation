@@ -1,8 +1,14 @@
 import {BrowserNavigator, NavigatorLocationType} from '../src';
 
-const nav = new BrowserNavigator();
+const nav = new BrowserNavigator({
+  log: true,
+});
 
-nav.on('location-changed', console.warn)
+const log = document.createElement('textarea');
+log.id = 'log';
+log.rows = 20;
+log.disabled = true;
+document.body.appendChild(log);
 
 window.nav = nav;
 
@@ -15,9 +21,22 @@ function createLink(text: string, location: NavigatorLocationType) {
   document.body.appendChild(link);
 }
 
-createLink('1', {view: '1'});
-createLink('2', {view: '2'});
-createLink('3', {view: '3'});
+createLink('onboarding', {view: 'onboarding'});
+createLink('onboarding / [shadow]confirm', {
+  view: 'onboarding',
+  popup: 'confirm',
+  modifiers: ['shadow'],
+});
+createLink('new', {view: 'new'});
+createLink('friends', {view: 'friends'});
 createLink('back', {modifiers: ['back']});
 
 nav.mount();
+
+nav.history.forEach(location => {
+  log.value += 'Location changed: ' + JSON.stringify(location) + '\n';
+})
+
+nav.on('location-changed', location => {
+  log.value += 'Location changed: ' + JSON.stringify(location) + '\n';
+});
