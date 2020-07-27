@@ -12,10 +12,17 @@ export type TechLocationModifierType =
 
   /**
    * Modifier "back" is recognized by navigator as an indicator that currently
-   * it should pop this location. It is commonly used while creating back
+   * it should pop current location. It is commonly used while creating back
    * segue
    */
   'back' |
+
+  /**
+   * Modifier "replace" is recognized by navigator as an indicator that
+   * currently it should replace current location. It is commonly used while
+   * creating replace segue
+   */
+  'replace' |
 
   /**
    * Modifier "skip" is recognized by navigator as an indicator that current
@@ -25,7 +32,10 @@ export type TechLocationModifierType =
   'skip' |
 
   /**
-   * Modifier "root" is used to determine first locations stack element
+   * Modifier "root" is used to determine first locations stack element. Cannot
+   * be pushed in case current location index is not 0. Additionally, no
+   * any other location instead of location on first place could have this
+   * modifier
    */
   'root';
 
