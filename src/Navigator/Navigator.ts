@@ -120,13 +120,14 @@ export class Navigator {
       );
     }
 
-    // // In case, we met modifier "back", it means, location is requesting
-    // // navigators "back" method. So, we are replacing current location with
-    // // "skip" location to prevent going back again when this location met
-    // if (modifiers.includes('back')) {
-    //   this.insertLocation({modifiers: ['skip']}, {silent: true});
-    //   return this.go(-2, options);
-    // }
+    if (modifiers.includes('root')) {
+      this.log('This location has root modifier. Throwing error..');
+
+      throw new Error(
+        '"root" modifier is restricted to use while pushing location',
+      );
+    }
+
 
     // In case, we met modifier "back", it means, location is requesting
     // navigators "back" method. So, we are just going back
