@@ -106,7 +106,7 @@ const listener = location => {
 // Добавление слушателя на изменения локации. Важно понимать, что этот слушатель
 // будет вызван только после вызова специальных методов как pushLocation, 
 // replaceLocation, go, back и forward
-navigator.on('location-change', listener);
+navigator.on('location-changed', listener);
 
 // Вызовет слушатель
 navigator.pushLocation({modifiers: ['back']});
@@ -115,7 +115,7 @@ navigator.pushLocation({modifiers: ['back']});
 navigator.pushLocation({modifiers: ['back']}, {silent: true});
 
 // Удаление слушателя
-navigator.off('location-change', listener);
+navigator.off('location-changed', listener);
 ```
 
 ##### Изменение локации

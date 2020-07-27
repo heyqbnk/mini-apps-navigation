@@ -100,7 +100,7 @@ const listener = location => {
 // Add listener on location change. It is important to know, that this event
 // listener will be called only after calling special methods like
 // pushLocation, replaceLocation, go, back and forward
-navigator.on('location-change', listener);
+navigator.on('location-changed', listener);
 
 // Will call event listeners
 navigator.pushLocation({modifiers: ['back']});
@@ -109,7 +109,7 @@ navigator.pushLocation({modifiers: ['back']});
 navigator.pushLocation({modifiers: ['back']}, {silent: true});
 
 // Remove event listener
-navigator.off('location-change', listener);
+navigator.off('location-changed', listener);
 ```
 
 ##### Make navigator change location
