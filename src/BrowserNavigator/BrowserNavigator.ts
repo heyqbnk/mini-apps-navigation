@@ -47,6 +47,10 @@ export class BrowserNavigator implements INavigator {
     // Skip the same locations. This problem occurs when user clicks
     // one link several times. History does not change but event is triggered
     if (prevSegue === segue) {
+      // TODO: Should we call pushState? User could click the same segue
+      //  several times and it is correct, but nothing will happen
+      //  browser's history and navigator too. Not sure our current solution
+      //  is correct
       return;
     }
 
@@ -67,7 +71,9 @@ export class BrowserNavigator implements INavigator {
     } else {
       const location = parseSegue(segue);
 
+      // In case, location cannot be extracted, prevent routing and throw error
       if (location === null) {
+        window.history.back();
         throw new Error('Unable to extract location from popstate event');
       }
       this.navigator.pushLocation(location);
