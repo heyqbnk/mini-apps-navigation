@@ -222,13 +222,13 @@ export class Navigator {
           ...locationsStack.slice(nextIndex + 1, this.locationIndex),
         ];
 
-      const compatibleLocationIndex = testStack.findIndex(l => {
+      const compatibleLocation = testStack.find(l => {
         return !l.modifiers.includes('skip');
       });
 
-      nextIndex = compatibleLocationIndex === -1
+      nextIndex = !compatibleLocation
         ? locationIndex
-        : compatibleLocationIndex;
+        : locationsStack.indexOf(compatibleLocation);
     }
 
     if (nextIndex !== locationIndex) {
