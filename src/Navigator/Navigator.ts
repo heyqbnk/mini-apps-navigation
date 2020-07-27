@@ -21,7 +21,7 @@ import {NavigatorConstructorProps} from './types';
 export class Navigator {
   /**
    * List of bound listeners
-   * @type {any[]}
+   * @type {EventListener[]}
    */
   private listeners: EventListener[] = [];
 
@@ -29,7 +29,7 @@ export class Navigator {
    * Locations stack. Represents locations history. First entry should
    * be a location which has modifier "root" to let navigator know this is
    * first entry
-   * @type {any[]}
+   * @type {{modifiers: string[]}[]}
    */
   locationsStack: NavigatorCompleteLocationType[] = [{
     modifiers: ['root'],
@@ -57,7 +57,7 @@ export class Navigator {
   /**
    * Calls listeners which are bound to "location-changed" event
    */
-  protected emitLocationChanged() {
+  private emitLocationChanged() {
     const location = this.getLocation();
 
     this.listeners.forEach(({event, listener}) => {
@@ -99,8 +99,8 @@ export class Navigator {
   }
 
   /**
-   * Pushes new location to stack and updates current location. Returns delta
-   * which states how much location index was changed
+   * Pushes new location to stack and updates current location. Returns
+   * navigation change results
    * @param {NavigatorLocationType} location
    * @param options
    */
@@ -177,8 +177,8 @@ export class Navigator {
   };
 
   /**
-   * Goes through stack and reassigns current location. Returns delta
-   * which states how much location index was changed
+   * Goes through stack and reassigns current location. Returns
+   * navigation change results
    * @param {number} delta
    * @param {SetLocationOptions} options
    * @returns {ChangeLocationResult}
