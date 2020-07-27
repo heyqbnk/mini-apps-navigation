@@ -3,7 +3,7 @@
  */
 export type InternalModifierType =
 /**
- * Modifier "shadow" means, that normally, this route could be visited only
+ * Means, that normally, this route could be visited only
  * once. For example, it could be used for application alerts which usually
  * are displayed only once. After being visited, this modifier will be replaced
  * with "skip" modifier
@@ -11,33 +11,42 @@ export type InternalModifierType =
   'shadow' |
 
   /**
-   * Modifier "back" is recognized by navigator as an indicator that currently
-   * it should pop current location. It is commonly used while creating back
-   * segue
+   * Makes navigator go to previous location in stack
    */
   'back' |
 
   /**
-   * Modifier "replace" is recognized by navigator as an indicator that
-   * currently it should replace current location. It is commonly used while
-   * creating replace segue
+   * Makes navigator replace current location
    */
   'replace' |
 
   /**
-   * Modifier "skip" is recognized by navigator as an indicator that current
-   * location should be skipped (or "slided" to next one). So, navigator will
-   * slide locations until normal location is found
+   * Makes navigator go to next location
+   */
+  'forward' |
+
+  /**
+   * Makes navigator skip current location
    */
   'skip' |
 
   /**
-   * Modifier "root" is used to determine first locations stack element. Cannot
-   * be pushed in case current location index is not 0. Additionally, no
-   * any other location instead of location on first place could have this
-   * modifier
+   * Is used to determine first locations stack element. Cannot
+   * be pushed. Cannot be used in replacement if currently navigator is not
+   * on the first location on stack
    */
   'root';
+
+/**
+ * List of modifiers which could be used while pushing location
+ */
+export type PushableModifierType = Extract<InternalModifierType,
+  'shadow' | 'back' | 'replace' | 'forward' | 'skip'>;
+
+/**
+ * List of modifiers which could be used while replacing location
+ */
+export type ReplaceableModifierType = InternalModifierType;
 
 export interface SetLocationOptions {
   /**
