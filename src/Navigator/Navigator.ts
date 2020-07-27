@@ -4,7 +4,7 @@ import {
   EventListenerFunc,
   NavigatorLocationType,
   ChangeLocationResult,
-  NavigatorCompleteLocationType, SetLocationOptions,
+  NavigatorCompleteLocationType, SetLocationOptions, InternalModifierType,
 } from '../types';
 import {
   createLogger,
@@ -12,6 +12,15 @@ import {
   isTechLocation,
 } from '../utils';
 import {NavigatorConstructorProps} from './types';
+import {filterStringArray} from './utils';
+
+/**
+ * List of modifiers which are not allowed to use on rool location
+ * @type {(string)[]}
+ */
+const forbiddenRootModifiers: InternalModifierType[] = [
+  'skip', 'back', 'forward', 'replace',
+];
 
 /**
  * Class which represents navigation core. Recommended only for creating
@@ -58,7 +67,7 @@ export class Navigator {
    * Calls listeners which are bound to "location-changed" event
    */
   private emitLocationChanged() {
-    const location = this.getLocation();
+    const location = this.location;
 
     this.listeners.forEach(({event, listener}) => {
       if (event === 'location-changed') {
@@ -77,7 +86,9 @@ export class Navigator {
   private insertLocation(
     location: NavigatorCompleteLocationType,
     options: SetLocationOptions = {},
-  ) {
+  ): ChangeLocationResult {
+    const formattedLocation = formatLocation(location);
+
     // Increase location index, due to new location was pushed
     this.locationIndex++;
 
@@ -85,7 +96,7 @@ export class Navigator {
     // location
     this.locationsStack = [
       ...this.locationsStack.slice(0, this.locationIndex),
-      formatLocation(location),
+      formattedLocation,
     ];
 
     this.log(
@@ -96,7 +107,31 @@ export class Navigator {
     if (!options.silent) {
       this.emitLocationChanged();
     }
+
+    return {delta: 1, location: formattedLocation};
   }
+
+  /**
+   * Replaces last added location
+   * @param {NavigatorLocationType} location
+   * @param {SetLocationOptions} options
+   */
+  private replaceLocation(
+    location: NavigatorLocationType,
+    options: SetLocationOptions = {},
+  ): ChangeLocationResult {
+    this.log('Replacing location:', location);
+    const formattedLocation = formatLocation(location);
+    this.locationsStack[this.locationIndex] = formattedLocation;
+
+    if (!options.silent) {
+      this.emitLocationChanged();
+    }
+
+    this.log('Replaced location', formattedLocation);
+
+    return {delta: 0, location: formattedLocation};
+  };
 
   /**
    * Pushes new location to stack and updates current location. Returns
@@ -114,67 +149,56 @@ export class Navigator {
 
     // In case, we met tech location where there are no modifiers, we should
     // throw an error
-    if (isTechLocation(formattedLocation) && modifiers.length === 0) {
-      throw new Error(
-        'pushLocation received tech location with no specified modifiers',
-      );
+    if (isTechLocation(location) && modifiers.length === 0) {
+      throw new Error('pushLocation received empty location');
     }
+    const isReplace = modifiers.includes('replace');
 
+    // If modifier "root" is met, we should check if current location is first
+    // in stack and we are in replace mode. Otherwise throw an error
     if (modifiers.includes('root')) {
-      this.log('This location has root modifier. Throwing error..');
+      this.log('This location has root modifier');
 
+      if (isReplace && this.locationIndex === 0) {
+        // Replace location and return result
+        return this.replaceLocation({
+          ...rest,
+          // Remove some forbidden modifiers from list of modifiers
+          modifiers: filterStringArray(modifiers, forbiddenRootModifiers),
+        }, options);
+      }
+      this.log('root modifier passed illegally');
       throw new Error(
-        '"root" modifier is restricted to use while pushing location',
+        '"root" modifier was passed illegally. It should be passed only ' +
+        'in case current locationIndex is zero and modifier "replace" is ' +
+        'passed too',
       );
     }
 
+    // Replace current location in case "replace" modifier met
+    if (isReplace) {
+      this.log('This location has "replace" modifier');
+      return this.replaceLocation({
+        ...rest,
+        modifiers: filterStringArray(modifiers, ['replace']),
+      }, options);
+    }
 
-    // In case, we met modifier "back", it means, location is requesting
-    // navigators "back" method. So, we are just going back
+    // Go back if "back" is passed
     if (modifiers.includes('back')) {
-      this.log('This location has back modifier. Going back..');
+      this.log('This location has "back" modifier');
       return this.back(options);
     }
 
-    // In case, shadowed location is passed, we have to replace it with "skip"
-    // modifier to avoid getting this location again
-    if (modifiers.includes('shadow')) {
-      this.log('This location has shadow modifier');
-
-      // Remove shadow modifier
-      const filteredModifiers = modifiers.filter(m => m !== 'shadow');
-
-      // Push location with "skip" modifier
-      this.insertLocation({
-        ...rest,
-        modifiers: [...filteredModifiers, 'skip'],
-      });
-    } else {
-      this.log('This location has no special modifiers');
-      this.insertLocation(formattedLocation, options);
+    // Go forward if "forward" is passed
+    if (modifiers.includes('forward')) {
+      this.log('This location has "forward" modifier');
+      return this.forward(options);
     }
 
-    return {delta: 1, location: this.getLocation()};
-  };
-
-  /**
-   * Replaces last added stack location
-   * @param {NavigatorLocationType} location
-   * @param {SetLocationOptions} options
-   */
-  replaceLocation(
-    location: NavigatorLocationType,
-    options: SetLocationOptions = {},
-  ) {
-    this.log('Replacing location:', location);
-    const formattedLocation = formatLocation(location);
-    this.locationsStack[this.locationIndex] = formattedLocation;
-
-    if (!options.silent) {
-      this.emitLocationChanged();
-    }
-
-    this.log('Replaced location', formattedLocation);
+    // All other locations should be just pushed
+    this.log('This location has no special modifiers');
+    return this.insertLocation(formattedLocation, options);
   };
 
   /**
@@ -199,7 +223,7 @@ export class Navigator {
     }
 
     if (nextIndex === locationIndex) {
-      return {delta: 0, location: this.getLocation()};
+      return {delta: 0, location: this.location};
     }
 
     const direction = delta > 0 ? 'forward' : 'backward';
@@ -239,13 +263,10 @@ export class Navigator {
         this.emitLocationChanged();
       }
 
-      return {
-        delta: nextIndex - locationIndex,
-        location: this.getLocation(),
-      };
+      return {delta: nextIndex - locationIndex, location: this.location};
     }
 
-    return {delta: 0, location: this.getLocation()};
+    return {delta: 0, location: this.location};
   }
 
   /**
@@ -280,16 +301,35 @@ export class Navigator {
         'Invalid index was passed. It should be an index in locationsStack',
       );
     }
+    const [firstLocation] = locationsStack;
+    const hasRootModifier = firstLocation.modifiers.includes('root');
+
+    if (!hasRootModifier) {
+      throw new Error(
+        'Unable to initialize locations stack where the first location ' +
+        'has no "root" modifier. Probably, stack is corrupted',
+      );
+    }
+    const hasForbiddenModifiers = firstLocation.modifiers
+      .some(m => forbiddenRootModifiers.includes(m as InternalModifierType));
+
+    if (hasForbiddenModifiers) {
+      throw new Error(
+        'Unable to initialize locations stack where root location ' +
+        'contains forbidden modifiers. Probably, this location was created ' +
+        'not by Navigator',
+      );
+    }
     this.locationIndex = index;
     this.locationsStack = locationsStack;
     this.log('Initialization complete, Arguments:', index, locationsStack);
   }
-
+  
   /**
    * Returns current location
    * @returns {NavigatorCompleteLocationType}
    */
-  getLocation(): NavigatorCompleteLocationType {
+  get location(): NavigatorCompleteLocationType {
     return this.locationsStack[this.locationIndex];
   }
 
