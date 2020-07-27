@@ -1,12 +1,14 @@
-import {INavigator, Navigator, SetLocationOptions} from '../Navigator';
+import {Navigator} from '../Navigator';
 import {
   EventListenerFunc,
   EventType,
   NavigatorLocationType,
+  INavigator,
+  SetLocationOptions,
 } from '../types';
 import {
   parseSegue,
-  createSegue,
+  createSegue, createLogger,
 } from '../utils';
 import {
   BrowserHistoryState,
@@ -16,7 +18,6 @@ import {
 import {isBrowserState} from './utils';
 
 export class BrowserNavigator implements INavigator {
-  private readonly logging: boolean;
   private readonly mode: BrowserNavigatorModeType;
   private readonly navigator: Navigator;
   private lastPopstateSegue: string | null = null;
@@ -24,12 +25,19 @@ export class BrowserNavigator implements INavigator {
   private originalReplaceState = window.history.replaceState
     .bind(window.history);
 
+  /**
+   * Logs message into console
+   */
+  private readonly log: (...messages: any[]) => void;
+
   constructor(props: BrowserNavigatorConstructorProps = {}) {
     const {mode = 'hash', log = false} = props;
 
     this.navigator = new Navigator(props);
     this.mode = mode;
-    this.logging = log;
+    this.log = log ? createLogger('BrowserNavigator') : () => {
+    };
+    this.log('Instance created');
   }
 
   /**
@@ -101,16 +109,6 @@ export class BrowserNavigator implements INavigator {
   }
 
   /**
-   * Logs message into console
-   * @param messages
-   */
-  private log(...messages: any[]) {
-    if (this.logging) {
-      console.log('%c[BrowserNavigator]:', 'font-weight: bold;', ...messages);
-    }
-  }
-
-  /**
    * Prepares location and uses original window's pushState method
    * @param {NavigatorLocationType} location
    * @param data
@@ -150,7 +148,11 @@ export class BrowserNavigator implements INavigator {
     options: SetLocationOptions = {},
     data: any = null,
   ) {
-    this.navigator.replaceLocation(location, options);
+    const {modifiers, ...rest} = location;
+    this.navigator.pushLocation({
+      modifiers: [...(modifiers || []), 'replace'],
+      ...rest,
+    }, options);
     this.originalReplaceState(
       this.createHistoryState(data),
       '',
@@ -159,7 +161,7 @@ export class BrowserNavigator implements INavigator {
   }
 
   get location() {
-    return this.navigator.getLocation();
+    return this.navigator.location;
   }
 
   get history() {
@@ -245,10 +247,13 @@ export class BrowserNavigator implements INavigator {
     window.history.replaceState = this.originalReplaceState;
   }
 
+  // FIXME: Not working
   back = window.history.back.bind(window.history);
 
+  // FIXME: Not working
   forward = window.history.forward.bind(window.history);
 
+  // FIXME: Not working
   go = window.history.go.bind(window.history);
 
   on<E extends EventType>(
