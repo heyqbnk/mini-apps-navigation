@@ -116,3 +116,14 @@ export function formatLocation(
     ? location
     : (isTechLocation(location) ? location : fulfillLocation(location));
 }
+
+/**
+ * Creates logger function
+ * @param {string} prefix
+ * @returns {(...args: any[]) => void}
+ */
+export function createLogger(prefix: string) {
+  return (...args: any[]) => {
+    console.log(`%c[${prefix}]:`, 'font-weight: bold;', ...args);
+  };
+}
