@@ -43,3 +43,11 @@ export type TechLocationModifierType =
  * List of all available types for location modifiers
  */
 export type LocationModifierType = TechLocationModifierType | string;
+
+export interface SetLocationOptions {
+  /**
+   * Should replace be silent. It means, no event listeners will be called
+   * @default false
+   */
+  silent?: boolean;
+}

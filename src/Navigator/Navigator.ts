@@ -4,17 +4,14 @@ import {
   EventListenerFunc,
   NavigatorLocationType,
   ChangeLocationResult,
-  NavigatorCompleteLocationType,
+  NavigatorCompleteLocationType, SetLocationOptions,
 } from '../types';
 import {
   createLogger,
   formatLocation,
   isTechLocation,
 } from '../utils';
-import {
-  NavigatorConstructorProps,
-  SetLocationOptions,
-} from './types';
+import {NavigatorConstructorProps} from './types';
 
 /**
  * Class which represents navigation core. Recommended only for creating
@@ -52,7 +49,8 @@ export class Navigator {
   constructor(props: NavigatorConstructorProps = {}) {
     const {log = false} = props;
 
-    this.log = log ? createLogger('Navigator') : () => {};
+    this.log = log ? createLogger('Navigator') : () => {
+    };
     this.log('Instance created');
   }
 
@@ -72,7 +70,7 @@ export class Navigator {
 
   /**
    * Inserts location on current position, removing each location
-   * after it. Works the same as browser history state push 
+   * after it. Works the same as browser history state push
    * @param {NavigatorCompleteLocationType} location
    * @param options
    */
@@ -82,7 +80,7 @@ export class Navigator {
   ) {
     // Increase location index, due to new location was pushed
     this.locationIndex++;
-    
+
     // Take all locations before current one including it and append new 
     // location
     this.locationsStack = [
