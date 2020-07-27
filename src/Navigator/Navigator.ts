@@ -40,7 +40,7 @@ export class Navigator {
    * first entry
    * @type {{modifiers: string[]}[]}
    */
-  locationsStack: NavigatorCompleteLocationType[] = [{
+  private _locationsStack: NavigatorCompleteLocationType[] = [{
     modifiers: ['root'],
   }];
 
@@ -48,7 +48,7 @@ export class Navigator {
    * Current stack location index
    * @type {number}
    */
-  locationIndex = 0;
+  private _locationIndex = 0;
 
   /**
    * Logs message into console
@@ -90,18 +90,18 @@ export class Navigator {
     const formattedLocation = formatLocation(location);
 
     // Increase location index, due to new location was pushed
-    this.locationIndex++;
+    this._locationIndex++;
 
     // Take all locations before current one including it and append new 
     // location
-    this.locationsStack = [
-      ...this.locationsStack.slice(0, this.locationIndex),
+    this._locationsStack = [
+      ...this._locationsStack.slice(0, this._locationIndex),
       formattedLocation,
     ];
 
     this.log(
       'Pushed location to stack. Location:', location,
-      'Current stack:', this.locationsStack,
+      'Current stack:', this._locationsStack,
     );
 
     if (!options.silent) {
@@ -122,7 +122,7 @@ export class Navigator {
   ): ChangeLocationResult {
     this.log('Replacing location:', location);
     const formattedLocation = formatLocation(location);
-    this.locationsStack[this.locationIndex] = formattedLocation;
+    this._locationsStack[this._locationIndex] = formattedLocation;
 
     if (!options.silent) {
       this.emitLocationChanged();
@@ -159,7 +159,7 @@ export class Navigator {
     if (modifiers.includes('root')) {
       this.log('This location has root modifier');
 
-      if (isReplace && this.locationIndex === 0) {
+      if (isReplace && this._locationIndex === 0) {
         // Replace location and return result
         return this.replaceLocation({
           ...rest,
@@ -170,7 +170,7 @@ export class Navigator {
       this.log('root modifier passed illegally');
       throw new Error(
         '"root" modifier was passed illegally. It should be passed only ' +
-        'in case current locationIndex is zero and modifier "replace" is ' +
+        'in case current _locationIndex is zero and modifier "replace" is ' +
         'passed too',
       );
     }
@@ -202,6 +202,22 @@ export class Navigator {
   };
 
   /**
+   * Returns current location index
+   * @returns {number}
+   */
+  get locationIndex() {
+    return this._locationIndex;
+  }
+
+  /**
+   * Returns current locations stack
+   * @returns {number}
+   */
+  get locationsStack() {
+    return this._locationsStack;
+  }
+
+  /**
    * Goes through stack and reassigns current location. Returns
    * navigation change results
    * @param {number} delta
@@ -213,16 +229,16 @@ export class Navigator {
     options: SetLocationOptions = {},
   ): ChangeLocationResult {
     this.log('go() called', delta, options);
-    const {locationIndex, locationsStack} = this;
-    let nextIndex = locationIndex + delta;
+    const {_locationIndex, _locationsStack} = this;
+    let nextIndex = _locationIndex + delta;
 
     if (nextIndex < 0) {
       nextIndex = 0;
-    } else if (nextIndex >= locationsStack.length) {
-      nextIndex = locationsStack.length - 1;
+    } else if (nextIndex >= _locationsStack.length) {
+      nextIndex = _locationsStack.length - 1;
     }
 
-    if (nextIndex === locationIndex) {
+    if (nextIndex === _locationIndex) {
       return {delta: 0, location: this.location};
     }
 
@@ -232,19 +248,19 @@ export class Navigator {
     // slided (has "skip" modifier). So, we have to slide until non-slideable
     // location is found. In case, it cannot be found, we should go the
     // opposite direction from nextIndex
-    const location = locationsStack[nextIndex];
+    const location = _locationsStack[nextIndex];
 
     if (location.modifiers.includes('skip')) {
       const testStack = direction === 'forward'
         ? [
-          ...locationsStack.slice(nextIndex + 1),
-          ...locationsStack
-            .slice(locationIndex + 1, nextIndex)
+          ..._locationsStack.slice(nextIndex + 1),
+          ..._locationsStack
+            .slice(_locationIndex + 1, nextIndex)
             .reverse(),
         ]
         : [
-          ...locationsStack.slice(0, nextIndex).reverse(),
-          ...locationsStack.slice(nextIndex + 1, this.locationIndex),
+          ..._locationsStack.slice(0, nextIndex).reverse(),
+          ..._locationsStack.slice(nextIndex + 1, this._locationIndex),
         ];
 
       const compatibleLocation = testStack.find(l => {
@@ -252,18 +268,18 @@ export class Navigator {
       });
 
       nextIndex = !compatibleLocation
-        ? locationIndex
-        : locationsStack.indexOf(compatibleLocation);
+        ? _locationIndex
+        : _locationsStack.indexOf(compatibleLocation);
     }
 
-    if (nextIndex !== locationIndex) {
-      this.locationIndex = nextIndex;
+    if (nextIndex !== _locationIndex) {
+      this._locationIndex = nextIndex;
 
       if (!options.silent) {
         this.emitLocationChanged();
       }
 
-      return {delta: nextIndex - locationIndex, location: this.location};
+      return {delta: nextIndex - _locationIndex, location: this.location};
     }
 
     return {delta: 0, location: this.location};
@@ -297,9 +313,7 @@ export class Navigator {
     locationsStack: NavigatorCompleteLocationType[],
   ) {
     if (index < 0 || locationsStack.length <= index) {
-      throw new Error(
-        'Invalid index was passed. It should be an index in locationsStack',
-      );
+      throw new Error('Invalid index was passed (out of bounds)');
     }
     const [firstLocation] = locationsStack;
     const hasRootModifier = firstLocation.modifiers.includes('root');
@@ -320,8 +334,8 @@ export class Navigator {
         'not by Navigator',
       );
     }
-    this.locationIndex = index;
-    this.locationsStack = locationsStack;
+    this._locationIndex = index;
+    this._locationsStack = locationsStack;
     this.log('Initialization complete, Arguments:', index, locationsStack);
   }
   
@@ -330,7 +344,7 @@ export class Navigator {
    * @returns {NavigatorCompleteLocationType}
    */
   get location(): NavigatorCompleteLocationType {
-    return this.locationsStack[this.locationIndex];
+    return this._locationsStack[this._locationIndex];
   }
 
   /**
