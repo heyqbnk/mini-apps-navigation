@@ -19,6 +19,10 @@ export class BrowserNavigator implements INavigator {
   private readonly logging: boolean;
   private readonly mode: BrowserNavigatorModeType;
   private readonly navigator: Navigator;
+  private lastPopstateSegue: string | null = null;
+  private originalPushState = window.history.pushState.bind(window.history);
+  private originalReplaceState = window.history.replaceState
+    .bind(window.history);
 
   constructor(props: BrowserNavigatorConstructorProps = {}) {
     const {mode = 'hash', log = false} = props;
@@ -28,15 +32,24 @@ export class BrowserNavigator implements INavigator {
     this.logging = log;
   }
 
-  private originalPushState = window.history.pushState.bind(window.history);
-  private originalReplaceState = window.history.replaceState
-    .bind(window.history);
-
   /**
    * Event listener which watches for popstate event and calls Navigator
    * location update
    */
   private onPopState = (e: PopStateEvent) => {
+    const prevSegue = this.lastPopstateSegue;
+    const segue = this.mode === 'default'
+      ? window.location.pathname
+      : window.location.hash;
+
+    this.lastPopstateSegue = segue;
+
+    // Skip the same locations. This problem occurs when user clicks
+    // one link several times. History does not change but event is triggered
+    if (prevSegue === segue) {
+      return;
+    }
+
     if (isBrowserState(e.state)) {
       // When popstate event is called, it means, browser create history move.
       // So, we have to detect which direction user chose and how far he
@@ -52,14 +65,17 @@ export class BrowserNavigator implements INavigator {
         this.go(additionalDelta);
       }
     } else {
-      const location = parseSegue(this.mode === 'default'
-        ? window.location.pathname
-        : window.location.hash);
+      const location = parseSegue(segue);
 
       if (location === null) {
         throw new Error('Unable to extract location from popstate event');
       }
       this.navigator.pushLocation(location);
+      this.originalReplaceState(
+        this.createHistoryState(e.state),
+        '',
+        this.createSegue(location),
+      );
     }
   };
 
@@ -136,25 +152,29 @@ export class BrowserNavigator implements INavigator {
     );
   }
 
-  public get location() {
+  get location() {
     return this.navigator.getLocation();
   }
 
-  public pushLocation(
+  get history() {
+    return this.navigator.locationsStack;
+  }
+
+  pushLocation(
     location: NavigatorLocationType,
     options: SetLocationOptions = {},
   ) {
     this.pushState(location, options);
   }
 
-  public replaceLocation(
+  replaceLocation(
     location: NavigatorLocationType,
     options: SetLocationOptions = {},
   ) {
     this.replaceState(location, options);
   }
 
-  public mount() {
+  mount() {
     // Override pushState and fulfill with navigators data
     window.history.pushState = (
       data: any,
@@ -204,7 +224,7 @@ export class BrowserNavigator implements INavigator {
     // compatible to navigator
     else if (window.history.length === 1) {
       this.log('Detected empty history. Replaced with root location');
-      this.replaceState({modifiers: ['root']});
+      this.replaceState({modifiers: ['root']}, {silent: true});
     }
 
     this.log(
@@ -213,39 +233,33 @@ export class BrowserNavigator implements INavigator {
     );
   }
 
-  public unmount() {
+  unmount() {
     window.removeEventListener('popstate', this.onPopState);
     window.history.pushState = this.originalPushState;
     window.history.replaceState = this.originalReplaceState;
   }
 
-  public back() {
-    window.history.back();
-  }
+  back = window.history.back.bind(window.history);
 
-  public forward() {
-    window.history.forward();
-  }
+  forward = window.history.forward.bind(window.history);
 
-  public go(delta?: number) {
-    window.history.go(delta);
-  }
+  go = window.history.go.bind(window.history);
 
-  public on<E extends EventType>(
+  on<E extends EventType>(
     event: E,
     listener: EventListenerFunc<E>,
   ) {
     this.navigator.on(event, listener);
   };
 
-  public off<E extends EventType>(
+  off<E extends EventType>(
     event: E,
     listener: EventListenerFunc<E>,
   ) {
     this.navigator.off(event, listener);
   };
 
-  public createSegue(location: NavigatorLocationType): string {
+  createSegue(location: NavigatorLocationType): string {
     return (this.mode === 'default' ? '' : '#') + createSegue(location);
   }
 }
