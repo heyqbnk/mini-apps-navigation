@@ -62,7 +62,7 @@ does not work with something like `window.history` itself. It waits for someone
 who could do it for himself. `Navigator` just contains hard and main logic
 connected with navigation.
 
-[Definition](https://github.com/wolframdeus/mini-apps-navigation/blob/master/src/Navigator/types.ts#L22)
+[Definition](https://github.com/wolframdeus/mini-apps-navigation/blob/master/src/Navigator/Navigator.ts#L22)
 
 #### Usage
 ##### Creating instance
@@ -152,7 +152,7 @@ which contains current location index and location history.
 #### Usage
 ##### Creating instance
 ```typescript
-import {BrowserNavigator} from '@mini-apps/navigator';
+import {BrowserNavigator} from '@mini-apps/navigation';
 
 const navigator = new BrowserNavigator({
   // Available modes are 'default' and 'hash'. It determines with which part

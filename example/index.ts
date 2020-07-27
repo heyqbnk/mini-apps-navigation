@@ -1,4 +1,4 @@
-import {BrowserNavigator, NavigatorLocationType} from '../src';
+import {BrowserNavigator, NavigatorLocationType} from '@mini-apps/navigation';
 
 const nav = new BrowserNavigator({
   log: true,

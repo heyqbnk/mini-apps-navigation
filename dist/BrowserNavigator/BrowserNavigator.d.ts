@@ -5,9 +5,10 @@ export declare class BrowserNavigator implements INavigator {
     private readonly logging;
     private readonly mode;
     private readonly navigator;
-    constructor(props?: BrowserNavigatorConstructorProps);
+    private lastPopstateSegue;
     private originalPushState;
     private originalReplaceState;
+    constructor(props?: BrowserNavigatorConstructorProps);
     /**
      * Event listener which watches for popstate event and calls Navigator
      * location update
@@ -39,13 +40,14 @@ export declare class BrowserNavigator implements INavigator {
      */
     private replaceState;
     get location(): import("../types").NavigatorCompleteLocationType;
+    get history(): import("../types").NavigatorCompleteLocationType[];
     pushLocation(location: NavigatorLocationType, options?: SetLocationOptions): void;
     replaceLocation(location: NavigatorLocationType, options?: SetLocationOptions): void;
     mount(): void;
     unmount(): void;
-    back(): void;
-    forward(): void;
-    go(delta?: number): void;
+    back: () => void;
+    forward: () => void;
+    go: (delta?: number | undefined) => void;
     on<E extends EventType>(event: E, listener: EventListenerFunc<E>): void;
     off<E extends EventType>(event: E, listener: EventListenerFunc<E>): void;
     createSegue(location: NavigatorLocationType): string;
