@@ -1,8 +1,6 @@
 import {BrowserNavigator, NavigatorLocationType, extractBrowserNavigatorInfo} from '../src';
 
-const nav = new BrowserNavigator({
-  // log: true,
-});
+const nav = new BrowserNavigator();
 // @ts-ignore
 window.nav = nav;
 

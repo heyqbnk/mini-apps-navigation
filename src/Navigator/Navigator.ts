@@ -19,7 +19,7 @@ import {filterStringArray} from './utils';
  * @type {(string)[]}
  */
 const forbiddenRootModifiers: InternalModifierType[] = [
-  'skip', 'back', 'forward', 'replace',
+  'skip', 'back', 'replace',
 ];
 
 /**
