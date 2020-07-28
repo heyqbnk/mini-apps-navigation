@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.0](https://github.com/wolframdeus/mini-apps-navigation/compare/v1.1.3...v1.2.0) (2020-07-28)
+
+
+### Features
+
+* **createlogger:** add function which create loggers ([ac55bc3](https://github.com/wolframdeus/mini-apps-navigation/commit/ac55bc3e2d97609bf90527022ea63b10f8f4d9c2))
+* **modifiers:** add new modifier - "replace" ([837a63d](https://github.com/wolframdeus/mini-apps-navigation/commit/837a63d4a39832bc7972331e7b5bde6f45885ad4))
+* **navigator:** huge logic rework ([e4dd4ad](https://github.com/wolframdeus/mini-apps-navigation/commit/e4dd4ad6ef4135588a19a65a2f70e81c0132e939))
+
+
+### Bug Fixes
+
+* **browsernavigator:** fix bugs ([a4b092c](https://github.com/wolframdeus/mini-apps-navigation/commit/a4b092c5e1156c37992708eb13041736004647f4))
+* **navigator.pushlocation:** restrict pushing root modifier ([de9a456](https://github.com/wolframdeus/mini-apps-navigation/commit/de9a456b804999db672f277c7af0edaa46768967))
+
 ### [1.1.3](https://github.com/wolframdeus/mini-apps-navigation/compare/v1.1.2...v1.1.3) (2020-07-27)
 
 
