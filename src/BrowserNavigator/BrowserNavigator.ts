@@ -5,36 +5,19 @@ import {
   NavigatorLocationType,
   SetLocationOptions,
 } from '../types';
-import {
-  parseSegue,
-  createLogger, createSegue,
-} from '../utils';
+import {parseSegue, createSegue} from '../utils';
 import {
   BrowserHistoryState,
-  BrowserNavigatorConstructorProps, BrowserNavigatorInitOptions,
+  BrowserNavigatorInitOptions,
 } from './types';
 import {isBrowserState} from './utils';
 
 export class BrowserNavigator {
-  private readonly navigator: Navigator;
+  private readonly navigator = new Navigator();
   private hash: string | null = null;
   private originalPushState = window.history.pushState.bind(window.history);
   private originalReplaceState = window.history.replaceState
     .bind(window.history);
-
-  /**
-   * Logs message into console
-   */
-  private readonly log: (...messages: any[]) => void;
-
-  constructor(props: BrowserNavigatorConstructorProps = {}) {
-    const {log = false} = props;
-
-    this.navigator = new Navigator(props);
-    this.log = log ? createLogger('BrowserNavigator') : () => {
-    };
-    this.log('Instance created');
-  }
 
   /**
    * Event listener which watches for popstate event and calls Navigator
@@ -89,12 +72,12 @@ export class BrowserNavigator {
     // and replace browser history state
     const {
       location: parsedLocation, delta,
-    } = this.navigator.pushLocation(location);
+    } = this.navigator.processLocation(location);
 
     this.originalReplaceState(
       this.createHistoryState(
         e.state,
-        location.modifiers?.includes('back')
+        delta < 0
           ? this.navigator.locationIndex - delta
           : this.navigator.locationIndex,
       ),
@@ -139,13 +122,13 @@ export class BrowserNavigator {
     // Save navigator location index in case, location
     const {
       location: parsedLocation, delta,
-    } = this.navigator.pushLocation(location, options);
+    } = this.navigator.processLocation(location, options);
 
     // Call original pushState
     this.originalPushState(
       this.createHistoryState(
         data,
-        location.modifiers?.includes('back')
+        delta < 0
           // If it was back location, we should get location index of inserted
           // skip location
           ? this.navigator.locationIndex - delta
@@ -281,7 +264,6 @@ export class BrowserNavigator {
       this.replaceState(parsedLocation);
     };
     window.addEventListener('popstate', this.onPopState);
-    this.log('mount() called');
   }
 
   /**
@@ -291,7 +273,6 @@ export class BrowserNavigator {
     window.history.pushState = this.originalPushState;
     window.history.replaceState = this.originalReplaceState;
     window.removeEventListener('popstate', this.onPopState);
-    this.log('unmount() called');
   }
 
   /**
@@ -304,14 +285,12 @@ export class BrowserNavigator {
     this.mount();
 
     if (options) {
-      this.log('Initialized navigator with options:', options);
       this.navigator.init(options.locationIndex, options.locationsStack);
     }
     // In case, history length is 1, it means, we are currently on the first
     // its item. So then, we should replace current state with new one
     // compatible to navigator
     else if (window.history.length === 1) {
-      this.log('Detected empty history. Replaced with root location');
       this.replaceState({modifiers: ['root']}, {silent: true});
     }
   }

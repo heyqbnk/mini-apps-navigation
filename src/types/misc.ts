@@ -3,27 +3,22 @@
  */
 export type InternalModifierType =
 /**
- * Is used to determine first locations stack element. Can be pushed only along
- * with "replace" modifier.
- * PRIORITY: 1
+ * Is used to determine first locations stack element
  */
   'root' |
 
   /**
-   * Makes navigator replace current location.
-   * PRIORITY: 2
+   * Makes navigator replace current location
    */
   'replace' |
 
   /**
-   * Makes navigator go to previous location.
-   * PRIORITY: 3
+   * Makes navigator go to previous location
    */
   'back' |
 
   /**
-   * Makes navigator skip current location next time it is visited.
-   * PRIORITY: 4
+   * Makes navigator skip current location next time it is visited
    */
   'skip';
 

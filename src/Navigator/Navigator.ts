@@ -4,23 +4,10 @@ import {
   EventListenerFunc,
   NavigatorLocationType,
   ChangeLocationResult,
-  NavigatorCompleteLocationType, SetLocationOptions, InternalModifierType,
+  NavigatorCompleteLocationType, SetLocationOptions,
 } from '../types';
-import {
-  createLogger,
-  formatLocation,
-  isTechLocation,
-} from '../utils';
-import {NavigatorConstructorProps} from './types';
-import {filterStringArray} from './utils';
-
-/**
- * List of modifiers which are not allowed to use on rool location
- * @type {(string)[]}
- */
-const forbiddenRootModifiers: InternalModifierType[] = [
-  'skip', 'back', 'replace',
-];
+import {formatLocation, isTechLocation} from '../utils';
+import {isEmptyTechLocation} from './utils';
 
 /**
  * Class which represents navigation core. Recommended only for creating
@@ -51,19 +38,6 @@ export class Navigator {
   private _locationIndex = 0;
 
   /**
-   * Logs message into console
-   */
-  private readonly log: (...messages: any[]) => void;
-
-  constructor(props: NavigatorConstructorProps = {}) {
-    const {log = false} = props;
-
-    this.log = log ? createLogger('Navigator') : () => {
-    };
-    this.log('Instance created');
-  }
-
-  /**
    * Calls listeners which are bound to "location-changed" event
    */
   private emitLocationChanged() {
@@ -71,10 +45,9 @@ export class Navigator {
 
     this.listeners.forEach(({event, listener}) => {
       if (event === 'location-changed') {
-        listener(location);
+        listener(location, this._locationIndex, this._locationsStack);
       }
     });
-    this.log('Emitted location change:', location);
   }
 
   /**
@@ -83,11 +56,20 @@ export class Navigator {
    * @param {NavigatorCompleteLocationType} location
    * @param options
    */
-  private insertLocation(
+  pushLocation(
     location: NavigatorCompleteLocationType,
     options: SetLocationOptions = {},
   ): ChangeLocationResult {
     const formattedLocation = formatLocation(location);
+    const {modifiers} = formattedLocation;
+
+    if (isEmptyTechLocation(formattedLocation)) {
+      throw new Error('Unable to push empty tech location');
+    }
+
+    if (modifiers.includes('root')) {
+      throw new Error('Root location push is forbidden');
+    }
 
     // Increase location index, due to new location was pushed
     this._locationIndex++;
@@ -99,16 +81,25 @@ export class Navigator {
       formattedLocation,
     ];
 
-    this.log(
-      'Pushed location to stack. Location:', location,
-      'Current stack:', this._locationsStack,
-    );
-
     if (!options.silent) {
       this.emitLocationChanged();
     }
 
     return {delta: 1, location: formattedLocation};
+  }
+
+  /**
+   * Pushes location with "back" modifier
+   * @param {NavigatorCompleteLocationType} location
+   * @param {SetLocationOptions} options
+   * @returns {ChangeLocationResult}
+   */
+  pushBackLocation(
+    location: NavigatorCompleteLocationType,
+    options: SetLocationOptions = {},
+  ): ChangeLocationResult {
+    this.pushLocation({modifiers: ['skip']}, {silent: true});
+    return this.go(-2, options);
   }
 
   /**
@@ -120,75 +111,56 @@ export class Navigator {
     location: NavigatorLocationType,
     options: SetLocationOptions = {},
   ): ChangeLocationResult {
-    this.log('Replacing location:', location);
     const formattedLocation = formatLocation(location);
+    const {modifiers} = formattedLocation;
+
+    if (isEmptyTechLocation(formattedLocation)) {
+      throw new Error('Unable to replace current location with empty one');
+    }
+
+    if (modifiers.includes('root') && this._locationIndex !== 0) {
+      throw new Error(
+        'Unable to replace current location because "root" modifier was ' +
+        'passed and current location is not first in stack',
+      );
+    }
+
     this._locationsStack[this._locationIndex] = formattedLocation;
 
     if (!options.silent) {
       this.emitLocationChanged();
     }
 
-    this.log('Replaced location', formattedLocation);
-
     return {delta: 0, location: formattedLocation};
   };
 
   /**
-   * Pushes new location to stack and updates current location. Returns
-   * navigation change results
+   * Processes new location
    * @param {NavigatorLocationType} location
    * @param options
    */
-  pushLocation(
+  processLocation(
     location: NavigatorLocationType,
     options: SetLocationOptions = {},
   ): ChangeLocationResult {
-    this.log('Pushing location:', location);
     const formattedLocation = formatLocation(location);
-    const {modifiers, ...rest} = formattedLocation;
+    const {modifiers} = formattedLocation;
 
     // In case, we met tech location where there are no modifiers, we should
     // throw an error
     if (isTechLocation(location) && modifiers.length === 0) {
       throw new Error('pushLocation received empty location');
     }
-    const isReplace = modifiers.includes('replace');
 
-    // If modifier "root" is met, we should check if current location is first
-    // in stack and we are in replace mode. Otherwise throw an error
-    if (modifiers.includes('root')) {
-      if (isReplace && this._locationIndex === 0) {
-        // Replace location and return result
-        return this.replaceLocation({
-          ...rest,
-          // Remove some forbidden modifiers from list of modifiers
-          modifiers: filterStringArray(modifiers, forbiddenRootModifiers),
-        }, options);
-      }
-      throw new Error(
-        '"root" modifier was passed illegally. It should be passed only ' +
-        'in case current _locationIndex is zero and modifier "replace" is ' +
-        'passed too',
-      );
+    if (modifiers.includes('replace')) {
+      return this.replaceLocation(formattedLocation, options);
     }
 
-    // Replace current location in case "replace" modifier met
-    if (isReplace) {
-      // TODO: More checks for modifiers
-      return this.replaceLocation({
-        ...rest,
-        modifiers: filterStringArray(modifiers, ['replace']),
-      }, options);
-    }
-
-    // Go back if "back" is passed
     if (modifiers.includes('back')) {
-      this.insertLocation({modifiers: ['skip']}, {silent: true});
-      return this.go(-2);
+      return this.pushBackLocation(formattedLocation, options);
     }
 
-    // All other locations should be just pushed
-    return this.insertLocation(formattedLocation, options);
+    return this.pushLocation(formattedLocation, options);
   };
 
   /**
@@ -208,6 +180,14 @@ export class Navigator {
   }
 
   /**
+   * Returns current location
+   * @returns {NavigatorCompleteLocationType}
+   */
+  get location(): NavigatorCompleteLocationType {
+    return this._locationsStack[this._locationIndex];
+  }
+
+  /**
    * Goes through stack and reassigns current location. Returns
    * navigation change results
    * @param {number} delta
@@ -218,7 +198,6 @@ export class Navigator {
     delta: number,
     options: SetLocationOptions = {},
   ): ChangeLocationResult {
-    this.log('go() called', delta, options);
     const {_locationIndex, _locationsStack} = this;
     let nextIndex = _locationIndex + delta;
 
@@ -276,26 +255,6 @@ export class Navigator {
   }
 
   /**
-   * Shortcut for go(-1)
-   * @param {SetLocationOptions} options
-   * @returns {ChangeLocationResult}
-   */
-  back(options: SetLocationOptions = {}): ChangeLocationResult {
-    this.log('back() called', options);
-    return this.go(-1, options);
-  }
-
-  /**
-   * Shortcut for go(1)
-   * @param {SetLocationOptions} options
-   * @returns {ChangeLocationResult}
-   */
-  forward(options: SetLocationOptions = {}): ChangeLocationResult {
-    this.log('forward() called', options);
-    return this.go(1, options);
-  }
-
-  /**
    * Sets initial values for navigator
    */
   init(
@@ -314,10 +273,8 @@ export class Navigator {
         'has no "root" modifier. Probably, stack is corrupted',
       );
     }
-    const hasForbiddenModifiers = firstLocation.modifiers
-      .some(m => forbiddenRootModifiers.includes(m as InternalModifierType));
 
-    if (hasForbiddenModifiers) {
+    if (firstLocation.modifiers.includes('skip')) {
       throw new Error(
         'Unable to initialize locations stack where root location ' +
         'contains forbidden modifiers. Probably, this location was created ' +
@@ -326,15 +283,6 @@ export class Navigator {
     }
     this._locationIndex = index;
     this._locationsStack = locationsStack;
-    this.log('Initialization complete, Arguments:', index, locationsStack);
-  }
-
-  /**
-   * Returns current location
-   * @returns {NavigatorCompleteLocationType}
-   */
-  get location(): NavigatorCompleteLocationType {
-    return this._locationsStack[this._locationIndex];
   }
 
   /**
@@ -347,7 +295,6 @@ export class Navigator {
     listener: EventListenerFunc<E>,
   ) => {
     this.listeners.push({event, listener} as any);
-    this.log('Added event listener:', event, listener, this.listeners);
   };
 
   /**
@@ -360,8 +307,7 @@ export class Navigator {
     listener: EventListenerFunc<E>,
   ) => {
     this.listeners = this.listeners.filter(l => {
-      return l.event !== event || l.listener !== listener;
+      return !(l.event === event && l.listener === listener);
     });
-    this.log('Removed event listener:', event, listener, this.listeners);
   };
 }

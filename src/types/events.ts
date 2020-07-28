@@ -3,24 +3,23 @@ import {NavigatorCompleteLocationType} from './location';
 /**
  * Parameters returned to listeners for specified events
  */
-export interface EventListenerParamsMap {
-  'location-changed': NavigatorCompleteLocationType;
+export interface EventListenersMap {
+  'location-changed': (
+    location: NavigatorCompleteLocationType,
+    locationIndex: number,
+    locationsStack: NavigatorCompleteLocationType[],
+  ) => void;
 }
 
 /**
  * Available listening events
  */
-export type EventType = keyof EventListenerParamsMap;
-
-/**
- * Returns passed to listener list of parameters
- */
-export type EventListenerParams<E extends EventType> = EventListenerParamsMap[E];
+export type EventType = keyof EventListenersMap;
 
 /**
  * Defines event listener
  */
-export type EventListenerFunc<E extends EventType> = (params: EventListenerParams<E>) => void;
+export type EventListenerFunc<E extends EventType> = EventListenersMap[E]
 
 /**
  * Describes any existing event listener
@@ -31,11 +30,3 @@ export type EventListener = {
     listener: EventListenerFunc<E>;
   };
 }[EventType];
-
-/**
- * Type for adding and removing listeners
- */
-export type EventListeningManipulator = <E extends EventType>(
-  event: E,
-  listener: EventListenerFunc<E>,
-) => void;

@@ -1,4 +1,3 @@
-import {NavigatorConstructorProps} from '../Navigator';
 import {NavigatorCompleteLocationType} from '../types';
 
 /**
@@ -24,10 +23,6 @@ export interface BrowserHistoryState {
      */
     locationsStack: NavigatorCompleteLocationType[];
   };
-}
-
-export interface BrowserNavigatorConstructorProps
-  extends NavigatorConstructorProps {
 }
 
 export interface BrowserNavigatorInitOptions {

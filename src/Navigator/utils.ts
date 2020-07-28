@@ -1,12 +1,13 @@
+import {isTechLocation} from '../utils';
+import {NavigatorLocationType, NavigatorTechLocation} from '../types';
+
 /**
- * Removes removeValues from values
- * @param {string[]} values
- * @param {string[]} removeValues
- * @returns {string[]}
+ * States if location is empty tech location
+ * @param {NavigatorLocationType} location
+ * @returns {location is NavigatorTechLocation}
  */
-export function filterStringArray(
-  values: string[],
-  removeValues: string[]
-): string[] {
-  return values.filter(v => !removeValues.includes(v));
+export function isEmptyTechLocation(
+  location: NavigatorLocationType
+): location is NavigatorTechLocation {
+  return isTechLocation(location) && location.modifiers.length === 0;
 }
