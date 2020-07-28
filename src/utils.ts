@@ -79,7 +79,7 @@ export function createSegue(location: NavigatorLocationType): string {
     : '';
 
   if (isTechLocation(location)) {
-    return modifiersPart;
+    return '#' + modifiersPart;
   }
   const {modal, view, params, popup} = location;
   const valuePart = (view ? encodeURIComponent(view) : '') +
@@ -89,7 +89,7 @@ export function createSegue(location: NavigatorLocationType): string {
     ? `?${qs.stringify(params)}`
     : '';
 
-  return modifiersPart + valuePart + queryPart;
+  return '#' + modifiersPart + valuePart + queryPart;
 }
 
 /**

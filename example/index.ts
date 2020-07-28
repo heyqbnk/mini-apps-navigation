@@ -1,4 +1,9 @@
-import {BrowserNavigator, NavigatorLocationType, extractBrowserNavigatorInfo} from '../src';
+import {
+  BrowserNavigator,
+  NavigatorLocationType,
+  extractBrowserNavigatorSettings,
+  createSegue,
+} from '../src';
 
 const nav = new BrowserNavigator();
 // @ts-ignore
@@ -9,7 +14,7 @@ const backHref = document.getElementById('back-href') as HTMLAnchorElement;
 
 function createLink(text: string, location: NavigatorLocationType) {
   const link = document.createElement('a');
-  link.href = nav.createHref(location);
+  link.href = createSegue(location);
   link.innerText = text;
   link.style.display = 'block';
 
@@ -34,7 +39,7 @@ function updateHistory() {
   });
 }
 
-backHref.href = nav.createHref({modifiers: ['back']});
+backHref.href = createSegue({modifiers: ['back']});
 
 createLink('onboarding', {view: 'onboarding'});
 createLink('friends', {view: 'friends'});
@@ -58,7 +63,7 @@ createLink('friends / Vlad / Info (modal) / Delete friend confirm (alert)', {
 
 createLink('Replace link (onboarding) ', {view: 'onboarding'});
 
-const navigatorInfo = extractBrowserNavigatorInfo();
+const navigatorInfo = extractBrowserNavigatorSettings();
 nav.on('location-changed', updateHistory);
 nav.init(navigatorInfo ? navigatorInfo : undefined);
 

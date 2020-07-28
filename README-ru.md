@@ -166,11 +166,6 @@ navigator.forward();
 import {BrowserNavigator} from '@mini-apps/navigation';
 
 const navigator = new BrowserNavigator({
-  // Доступными режимами являются 'default' и 'hash'. Это определяет, с какой
-  // частью URL браузера навигатор должен работать - с window.location.pathname 
-  // или window.location.hash. 'hash' - значение по умолчанию
-  mode: 'hash',
-
   // Включение логирования
   log: true,
 });

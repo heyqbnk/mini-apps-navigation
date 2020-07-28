@@ -159,11 +159,6 @@ which contains current location index and location history.
 import {BrowserNavigator} from '@mini-apps/navigation';
 
 const navigator = new BrowserNavigator({
-  // Available modes are 'default' and 'hash'. It determines with which part
-  // navigator should work - with window.location.pathname or 
-  // window.location.hash. 'hash' is default value
-  mode: 'hash',
-
   // Log messages
   log: true,
 });

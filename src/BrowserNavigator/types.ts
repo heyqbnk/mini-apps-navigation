@@ -2,11 +2,6 @@ import {NavigatorConstructorProps} from '../Navigator';
 import {NavigatorCompleteLocationType} from '../types';
 
 /**
- * Browser navigation mode types
- */
-export type BrowserNavigatorModeType = 'default' | 'hash';
-
-/**
  * Browser's history state
  */
 export interface BrowserHistoryState {
@@ -33,12 +28,6 @@ export interface BrowserHistoryState {
 
 export interface BrowserNavigatorConstructorProps
   extends NavigatorConstructorProps {
-  /**
-   * Navigation mode. If "hash" is specified, navigator will work with window's
-   * location hash. Otherwise, window.location.pathname is used
-   * @default "hash"
-   */
-  mode?: BrowserNavigatorModeType;
 }
 
 export interface BrowserNavigatorInitOptions {
