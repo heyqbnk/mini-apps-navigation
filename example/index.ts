@@ -1,42 +1,67 @@
-import {BrowserNavigator, NavigatorLocationType} from '@mini-apps/navigation';
+import {BrowserNavigator, NavigatorLocationType, extractBrowserNavigatorInfo} from '../src';
 
 const nav = new BrowserNavigator({
-  log: true,
+  // log: true,
 });
-
-const log = document.createElement('textarea');
-log.id = 'log';
-log.rows = 20;
-log.disabled = true;
-document.body.appendChild(log);
-
+// @ts-ignore
 window.nav = nav;
+
+const log = document.getElementById('log') as HTMLDivElement;
+const backHref = document.getElementById('back-href') as HTMLAnchorElement;
 
 function createLink(text: string, location: NavigatorLocationType) {
   const link = document.createElement('a');
-  link.href = nav.createSegue(location);
+  link.href = nav.createHref(location);
   link.innerText = text;
   link.style.display = 'block';
 
   document.body.appendChild(link);
 }
 
+function updateHistory() {
+  log.innerHTML = '';
+
+  nav.history.forEach((location, idx) => {
+    const line = document.createElement('div');
+    line.className = 'location';
+
+    if (idx === nav.locationIndex) {
+      line.classList.add('current-location');
+    }
+    if (location.modifiers.includes('skip')) {
+      line.classList.add('skip-location');
+    }
+    line.innerText = JSON.stringify(location) + '\n';
+    log.appendChild(line);
+  });
+}
+
+backHref.href = nav.createHref({modifiers: ['back']});
+
 createLink('onboarding', {view: 'onboarding'});
-createLink('onboarding / [shadow]confirm', {
-  view: 'onboarding',
-  popup: 'confirm',
-  modifiers: ['shadow'],
-});
-createLink('new', {view: 'new'});
 createLink('friends', {view: 'friends'});
-createLink('back', {modifiers: ['back']});
-
-nav.mount();
-
-nav.history.forEach(location => {
-  log.value += 'Location changed: ' + JSON.stringify(location) + '\n';
-})
-
-nav.on('location-changed', location => {
-  log.value += 'Location changed: ' + JSON.stringify(location) + '\n';
+createLink('friends / Vlad', {
+  view: 'friends', params: {
+    name: 'Vlad',
+  },
 });
+createLink('friends / Vlad / Info (modal)', {
+  view: 'friends',
+  modal: 'info',
+  params: {name: 'Vlad'},
+});
+createLink('friends / Vlad / Info (modal) / Delete friend confirm (alert)', {
+  view: 'friends',
+  modal: 'info',
+  popup: 'delete',
+  modifiers: ['skip'],
+  params: {name: 'Vlad'},
+});
+
+createLink('Replace link (onboarding) ', {view: 'onboarding'});
+
+const navigatorInfo = extractBrowserNavigatorInfo();
+nav.on('location-changed', updateHistory);
+nav.init(navigatorInfo ? navigatorInfo : undefined);
+
+updateHistory();

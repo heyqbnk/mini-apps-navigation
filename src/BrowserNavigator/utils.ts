@@ -50,3 +50,13 @@ export function isBrowserState(state: any): state is BrowserHistoryState {
         isObject(location.params);
     });
 }
+
+/**
+ * Tries to extract navigator info from current window.history.state
+ */
+export function extractBrowserNavigatorInfo() {
+  if (isBrowserState(window.history.state)) {
+    return window.history.state.navigator;
+  }
+  return null;
+}

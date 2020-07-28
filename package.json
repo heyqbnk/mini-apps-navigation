@@ -17,7 +17,7 @@
   ],
   "scripts": {
     "prepare": "install-peers",
-    "dev": "webpack-dev-server --https",
+    "dev": "webpack-dev-server",
     "test": "tsc --noEmit",
     "build": "gulp",
     "lint": "eslint src/**/*.{ts,tsx}",

@@ -6,13 +6,63 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Document</title>
     <style>
+        .title {
+            padding-top: 30px;
+            font-size: 20px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
         #log {
             width: 100%;
-            resize: none;
+            height: 400px;
+            background-color: #ebebeb;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-family: monospace;
+            color: #333;
+            overflow: auto;
+        }
+
+        .location {
+            padding: 2px 0;
+        }
+        .skip-location {
+            color: #888;
+        }
+        .current-location {
+            font-weight: bold;
+            color: black;
+        }
+        .flex {
+            display: flex;
+            align-items: center;
+        }
+        .tools-divider {
+            padding: 0 20px;
+        }
+        .button + .button {
+            margin-left: 10px;
         }
     </style>
 </head>
 <body>
+
+<p class="title">Current history</p>
+<div id="log"></div>
+<div class="flex">
+    <div class="flex">
+        <button class="button" onclick="window.nav.back()">history.back()</button>
+        <button class="button" onclick="window.nav.forward()">history.forward()</button>
+    </div>
+    <div class="tools-divider">
+        or
+    </div>
+    <div class="flex">
+        <a class="button" id="back-href">Back link</a>
+    </div>
+</div>
 <script src="index.js" type="text/javascript"></script>
+
 </body>
 </html>

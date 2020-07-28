@@ -40,3 +40,8 @@ export interface BrowserNavigatorConstructorProps
    */
   mode?: BrowserNavigatorModeType;
 }
+
+export interface BrowserNavigatorInitOptions {
+  locationIndex: number;
+  locationsStack: NavigatorCompleteLocationType[];
+}

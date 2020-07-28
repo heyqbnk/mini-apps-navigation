@@ -116,7 +116,7 @@ export class Navigator {
    * @param {NavigatorLocationType} location
    * @param {SetLocationOptions} options
    */
-  private replaceLocation(
+  replaceLocation(
     location: NavigatorLocationType,
     options: SetLocationOptions = {},
   ): ChangeLocationResult {
@@ -157,8 +157,6 @@ export class Navigator {
     // If modifier "root" is met, we should check if current location is first
     // in stack and we are in replace mode. Otherwise throw an error
     if (modifiers.includes('root')) {
-      this.log('This location has root modifier');
-
       if (isReplace && this._locationIndex === 0) {
         // Replace location and return result
         return this.replaceLocation({
@@ -167,7 +165,6 @@ export class Navigator {
           modifiers: filterStringArray(modifiers, forbiddenRootModifiers),
         }, options);
       }
-      this.log('root modifier passed illegally');
       throw new Error(
         '"root" modifier was passed illegally. It should be passed only ' +
         'in case current _locationIndex is zero and modifier "replace" is ' +
@@ -177,7 +174,7 @@ export class Navigator {
 
     // Replace current location in case "replace" modifier met
     if (isReplace) {
-      this.log('This location has "replace" modifier');
+      // TODO: More checks for modifiers
       return this.replaceLocation({
         ...rest,
         modifiers: filterStringArray(modifiers, ['replace']),
@@ -186,18 +183,11 @@ export class Navigator {
 
     // Go back if "back" is passed
     if (modifiers.includes('back')) {
-      this.log('This location has "back" modifier');
-      return this.back(options);
-    }
-
-    // Go forward if "forward" is passed
-    if (modifiers.includes('forward')) {
-      this.log('This location has "forward" modifier');
-      return this.forward(options);
+      this.insertLocation({modifiers: ['skip']}, {silent: true});
+      return this.go(-2);
     }
 
     // All other locations should be just pushed
-    this.log('This location has no special modifiers');
     return this.insertLocation(formattedLocation, options);
   };
 
@@ -338,7 +328,7 @@ export class Navigator {
     this._locationsStack = locationsStack;
     this.log('Initialization complete, Arguments:', index, locationsStack);
   }
-  
+
   /**
    * Returns current location
    * @returns {NavigatorCompleteLocationType}

@@ -1,9 +1,8 @@
 import {Navigator} from '../Navigator';
 import {
   EventListenerFunc,
-  EventType,
+  EventType, NavigatorCompleteLocationType,
   NavigatorLocationType,
-  INavigator,
   SetLocationOptions,
 } from '../types';
 import {
@@ -12,12 +11,12 @@ import {
 } from '../utils';
 import {
   BrowserHistoryState,
-  BrowserNavigatorConstructorProps,
+  BrowserNavigatorConstructorProps, BrowserNavigatorInitOptions,
   BrowserNavigatorModeType,
 } from './types';
 import {isBrowserState} from './utils';
 
-export class BrowserNavigator implements INavigator {
+export class BrowserNavigator {
   private readonly mode: BrowserNavigatorModeType;
   private readonly navigator: Navigator;
   private lastPopstateSegue: string | null = null;
@@ -45,66 +44,92 @@ export class BrowserNavigator implements INavigator {
    * location update
    */
   private onPopState = (e: PopStateEvent) => {
-    const prevSegue = this.lastPopstateSegue;
-    const segue = this.mode === 'default'
-      ? window.location.pathname
-      : window.location.hash;
-
-    this.lastPopstateSegue = segue;
-
-    // Skip the same locations. This problem occurs when user clicks
-    // one link several times. History does not change but event is triggered
-    if (prevSegue === segue) {
-      // TODO: Should we call pushState? User could click the same segue
-      //  several times and it is correct, but nothing will happen
-      //  browser's history and navigator too. Not sure our current solution
-      //  is correct
-      return;
-    }
-
+    // If current location already has correct state, it means, it was added
+    // by navigator
     if (isBrowserState(e.state)) {
-      // When popstate event is called, it means, browser create history move.
-      // So, we have to detect which direction user chose and how far he
-      // went
+      // We have to calculate delta to determine which direction we should
+      // choose
       const delta = e.state.navigator.locationIndex -
         this.navigator.locationIndex;
 
-      // Synchronize user move with navigator
-      const {delta: navigatorDelta} = this.navigator.go(delta);
-      const additionalDelta = navigatorDelta - delta;
+      // Move only in distance changed
+      if (delta !== 0) {
+        // Update navigator state and get, how really much distance changed
+        const {delta: navigatorDelta} = this.navigator.go(delta);
 
-      if (additionalDelta !== 0) {
-        this.go(additionalDelta);
-      }
-    } else {
-      const location = parseSegue(segue);
+        // Calculate how many more steps we have to do
+        const additionalDelta = navigatorDelta - delta;
 
-      // In case, location cannot be extracted, prevent routing and throw error
-      if (location === null) {
-        window.history.back();
-        throw new Error('Unable to extract location from popstate event');
+        // In case, more steps required, do them
+        if (additionalDelta !== 0) {
+          this.go(additionalDelta);
+        }
       }
-      this.navigator.pushLocation(location);
-      this.originalReplaceState(
-        this.createHistoryState(e.state),
-        '',
-        this.createSegue(location),
-      );
+
+      return;
+    }
+
+    // If state is incorrect, it means, this location is new for this navigator
+    const prevSegue = this.lastPopstateSegue;
+
+    // Reassign last found segue
+    this.lastPopstateSegue = this.mode === 'default'
+      ? window.location.pathname
+      : window.location.hash;
+
+    // Try parsing it
+    const location = parseSegue(this.lastPopstateSegue);
+
+    // In case, location cannot be extracted, prevent routing and throw error
+    if (location === null) {
+      this.back();
+      throw new Error('Unable to extract location from popstate event');
+    }
+
+    // In case, prev segue is equal to current one, browser will not push
+    // new history item and we are doing it instead of him
+    if (prevSegue === this.lastPopstateSegue) {
+      return this.pushLocation(location);
+    }
+
+    // Otherwise, location was pushed natively. So, we push it into navigator
+    // and replace browser history state
+    const locationIndexIfBack = this.navigator.locationIndex + 1;
+    const {
+      location: parsedLocation, delta,
+    } = this.navigator.pushLocation(location);
+
+    this.originalReplaceState(
+      this.createHistoryState(
+        e.state,
+        location.modifiers?.includes('back')
+          ? locationIndexIfBack
+          : this.navigator.locationIndex,
+      ),
+      '',
+      this.createHref(parsedLocation),
+    );
+
+    if (delta < 0) {
+      this.go(delta);
     }
   };
 
   /**
    * Creates state for browser's history
    * @param data
+   * @param locationIndex
+   * @param locationsStack
    * @returns {BrowserHistoryState}
    */
-  private createHistoryState(data: any = null): BrowserHistoryState {
+  private createHistoryState(
+    data: any = null,
+    locationIndex = this.navigator.locationIndex,
+    locationsStack = this.navigator.locationsStack,
+  ): BrowserHistoryState {
     return {
       state: data,
-      navigator: {
-        locationIndex: this.navigator.locationIndex,
-        locationsStack: this.navigator.locationsStack,
-      },
+      navigator: {locationIndex, locationsStack},
     };
   }
 
@@ -119,21 +144,29 @@ export class BrowserNavigator implements INavigator {
     options: SetLocationOptions = {},
     data: any = null,
   ) {
+    // Save navigator location index in case, location
     const {
       location: parsedLocation, delta,
     } = this.navigator.pushLocation(location, options);
 
-    // In case, location push was successful, we can original pushState
-    if (delta > 0) {
-      this.originalPushState(
-        this.createHistoryState(data),
-        '',
-        this.createSegue(parsedLocation),
-      );
-    }
-    // Otherwise, if we returned in history, just call "go" 
-    else if (delta < 0) {
-      window.history.go(delta);
+    // Call original pushState
+    this.originalPushState(
+      this.createHistoryState(
+        data,
+        location.modifiers?.includes('back')
+          // If it was back location, we should get location index of inserted
+          // skip location
+          ? this.navigator.locationIndex - delta
+          : this.navigator.locationIndex,
+      ),
+      '',
+      this.createHref(parsedLocation),
+    );
+
+    // If it was back location we should go back. We do subtract 1 more because
+    // previously, new state was added
+    if (delta < 0) {
+      this.go(delta - 1);
     }
   }
 
@@ -148,26 +181,59 @@ export class BrowserNavigator implements INavigator {
     options: SetLocationOptions = {},
     data: any = null,
   ) {
-    const {modifiers, ...rest} = location;
-    this.navigator.pushLocation({
-      modifiers: [...(modifiers || []), 'replace'],
-      ...rest,
-    }, options);
+    // Save navigator location index in case, location
+    const {
+      location: parsedLocation, delta,
+    } = this.navigator.replaceLocation(location, options);
+
+    // Call original replaceState
     this.originalReplaceState(
-      this.createHistoryState(data),
+      this.createHistoryState(
+        data,
+        location.modifiers?.includes('back')
+          // If it was back location, we should get location index of inserted
+          // skip location
+          ? this.navigator.locationIndex - delta
+          : this.navigator.locationIndex,
+      ),
       '',
-      this.createSegue(location),
+      this.createHref(parsedLocation),
     );
+
+    // If it was back location we should go back
+    if (delta < 0) {
+      this.go(delta);
+    }
   }
 
+  /**
+   * Returns current location. Read-only property
+   */
   get location() {
     return this.navigator.location;
   }
 
+  /**
+   * Returns current location index
+   * @returns {number}
+   */
+  get locationIndex() {
+    return this.navigator.locationIndex;
+  }
+
+  /**
+   * Returns current history
+   * @returns {NavigatorCompleteLocationType[]}
+   */
   get history() {
     return this.navigator.locationsStack;
   }
 
+  /**
+   * Pushes new location adding it to locations stack
+   * @param {NavigatorLocationType} location
+   * @param {SetLocationOptions} options
+   */
   pushLocation(
     location: NavigatorLocationType,
     options: SetLocationOptions = {},
@@ -175,6 +241,11 @@ export class BrowserNavigator implements INavigator {
     this.pushState(location, options);
   }
 
+  /**
+   * Replaces current location with new one
+   * @param {NavigatorLocationType} location
+   * @param {SetLocationOptions} options
+   */
   replaceLocation(
     location: NavigatorLocationType,
     options: SetLocationOptions = {},
@@ -182,7 +253,10 @@ export class BrowserNavigator implements INavigator {
     this.replaceState(location, options);
   }
 
-  mount() {
+  /**
+   * Overrides window history methods like pushState and replaceState
+   */
+  overrideHistoryMethods() {
     // Override pushState and fulfill with navigators data
     window.history.pushState = (
       data: any,
@@ -214,18 +288,51 @@ export class BrowserNavigator implements INavigator {
       }
       this.replaceState(parsedLocation);
     };
+  }
 
-    // Add event listener watching for history changes
+  /**
+   * Restores overridden history methods
+   */
+  restoreHistoryMethods() {
+    window.history.pushState = this.originalPushState;
+    window.history.replaceState = this.originalReplaceState;
+  }
+
+  /**
+   * Adds event listener watching for history changes
+   */
+  addPopstateListener() {
     window.addEventListener('popstate', this.onPopState);
+  }
 
-    // Derive initial state from current browser state
-    if (isBrowserState(window.history.state)) {
-      this.log(
-        'Detected initial state while mounting:',
-        window.history.state.navigator,
-      );
-      const {locationIndex, locationsStack} = window.history.state.navigator;
-      this.navigator.init(locationIndex, locationsStack);
+  /**
+   * Removes popstate listener
+   */
+  removePopstateListener() {
+    window.removeEventListener('popstate', this.onPopState);
+  }
+
+  /**
+   * Creates links for specified location
+   * @param {NavigatorLocationType} location
+   * @returns {string}
+   */
+  createHref(location: NavigatorLocationType): string {
+    return (this.mode === 'default' ? '' : '#') + createSegue(location);
+  }
+
+  /**
+   * Initializes navigator. Adds all required listeners and rewires functions.
+   * If options are passed, it will initialize navigator with them. Otherwise
+   * will try to do it by himself
+   * @param {BrowserNavigatorInitOptions} options
+   */
+  init(options?: BrowserNavigatorInitOptions) {
+    this.mount();
+
+    if (options) {
+      this.log('Initialized navigator with options:', options);
+      this.navigator.init(options.locationIndex, options.locationsStack);
     }
     // In case, history length is 1, it means, we are currently on the first
     // its item. So then, we should replace current state with new one
@@ -234,28 +341,49 @@ export class BrowserNavigator implements INavigator {
       this.log('Detected empty history. Replaced with root location');
       this.replaceState({modifiers: ['root']}, {silent: true});
     }
-
-    this.log(
-      'Mount completed. Stack:', this.navigator.locationsStack,
-      'Location:', this.location,
-    );
   }
 
+  /**
+   * Overrides history functions and adds event listener to popstate event
+   */
+  mount() {
+    this.overrideHistoryMethods();
+    this.addPopstateListener();
+    this.log('mount() called');
+  }
+
+  /**
+   * Cancels all history functions rewires and removes event listener
+   */
   unmount() {
-    window.removeEventListener('popstate', this.onPopState);
-    window.history.pushState = this.originalPushState;
-    window.history.replaceState = this.originalReplaceState;
+    this.restoreHistoryMethods();
+    this.removePopstateListener();
+    this.log('unmount() called');
   }
 
-  // FIXME: Not working
+  /**
+   * Removes last pushed location from routing stack
+   * @type {any}
+   */
   back = window.history.back.bind(window.history);
 
-  // FIXME: Not working
+  /**
+   * Goes forward through routing stack
+   * @type {any}
+   */
   forward = window.history.forward.bind(window.history);
 
-  // FIXME: Not working
+  /**
+   * Goes through routing stack with passed delta
+   * @type {any}
+   */
   go = window.history.go.bind(window.history);
 
+  /**
+   * Adds listener for specified event
+   * @param {E} event
+   * @param {EventListenerFunc<E>} listener
+   */
   on<E extends EventType>(
     event: E,
     listener: EventListenerFunc<E>,
@@ -263,14 +391,15 @@ export class BrowserNavigator implements INavigator {
     this.navigator.on(event, listener);
   };
 
+  /**
+   * Removes listener from specified event
+   * @param {E} event
+   * @param {EventListenerFunc<E>} listener
+   */
   off<E extends EventType>(
     event: E,
     listener: EventListenerFunc<E>,
   ) {
     this.navigator.off(event, listener);
   };
-
-  createSegue(location: NavigatorLocationType): string {
-    return (this.mode === 'default' ? '' : '#') + createSegue(location);
-  }
 }

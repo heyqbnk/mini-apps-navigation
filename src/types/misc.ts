@@ -22,14 +22,8 @@ export type InternalModifierType =
   'back' |
 
   /**
-   * Makes navigator go to next location.
-   * PRIORITY: 4
-   */
-  'forward' |
-
-  /**
    * Makes navigator skip current location next time it is visited.
-   * PRIORITY: 5
+   * PRIORITY: 4
    */
   'skip';
 
