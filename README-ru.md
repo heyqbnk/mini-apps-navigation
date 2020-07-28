@@ -70,7 +70,7 @@ npm i @mini-apps/navigation
 содержит лишь сложную и основную логику связанную с навигацией.
 
 Если вы разрабатываете приложения для работы с историей браузера, возможно,
-вам необходимо [BrowserNavigator](#BrowserNavigator).
+вам необходим [BrowserNavigator](#BrowserNavigator).
 
 [Определение](https://github.com/wolframdeus/mini-apps-navigation/blob/master/src/Navigator/Navigator.ts#L22)
 
@@ -80,11 +80,7 @@ npm i @mini-apps/navigation
 ```typescript
 import {Navigator} from '@mini-apps/navigation';
 
-// Создание инстанса навигатора
-const navigator = new Navigator({
-  // Включение логов
-  log: true,
-});
+const navigator = new Navigator();
 ```
 
 ##### Инициализация
@@ -106,15 +102,15 @@ const listener = location => {
 };
 
 // Добавление слушателя на изменения локации. Важно понимать, что этот слушатель
-// будет вызван только после вызова специальных методов как pushLocation, 
-// replaceLocation, go, back и forward
+// будет вызван только после вызова специальных методов, таких как pushLocation, 
+// replaceLocation, processLocation и go
 navigator.on('location-changed', listener);
 
 // Вызовет слушатель
-navigator.pushLocation({modifiers: ['back']});
+navigator.processLocation({modifiers: ['back']});
 
 // НЕ вызовет слушатель, т.к. передан параметр silent
-navigator.pushLocation({modifiers: ['back']}, {silent: true});
+navigator.processLocation({modifiers: ['back']}, {silent: true});
 
 // Удаление слушателя
 navigator.off('location-changed', listener);
@@ -123,37 +119,31 @@ navigator.off('location-changed', listener);
 ##### Изменение локации
 ```typescript
 // Добавление новой локации
-navigator.pushLocation({
-  view: 'onboarding',
-});
+navigator.processLocation({view: 'onboarding'});
 
 // Открытие одноразового alert
-navigator.pushLocation({
+navigator.processLocation({
   view: 'onboarding',
   popup: 'my-alert',
   modifiers: ['shadow'],
 });
 
 // Замена текущей локации
-navigator.replaceLocation({
-  view: 'main',
-});
+navigator.replaceLocation({view: 'main'});
 
 // Возврат на онбординг
 navigator.go(-1);
-// или
-navigator.back();
 
 // Вперед к онбордингу
-navigator.forward();
+navigator.go(1);
 ```
 
 ### BrowserNavigator
 
 `BrowserNavigator` адаптирован для браузера и работает с `window.history`.
-Он расширяет некоторые методы `Navigator`, такие как `on`, `off`, `back`, 
-`forward` и `go`, функционалом, который, преимущественно, связан с 
-взаимодействием с историей браузера.
+Он расширяет некоторые методы `Navigator`, такие как `on`, `off` и `go`, 
+функционалом, который, преимущественно, связан с взаимодействием с историей
+браузера.
 
 Так же, он переопределяет такие функции как `window.history.pushState` и 
 `window.history.replaceState` и в итоге, каждый элемент истории имеет
@@ -165,10 +155,7 @@ navigator.forward();
 ```typescript
 import {BrowserNavigator} from '@mini-apps/navigation';
 
-const navigator = new BrowserNavigator({
-  // Включение логирования
-  log: true,
-});
+const navigator = new BrowserNavigator();
 ```
 
 ##### Инициализация
@@ -186,7 +173,7 @@ navigator.init();
 navigator.unmount();
 ```
 
-**Начальное состояние навигатора**
+##### Начальное состояние навигатора
 
 Для того, чтобы иницилизировать навигатор было проще, существует функция
 `extractBrowserNavigatorSettings`, которая вернет начальные данные для 

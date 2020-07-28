@@ -74,11 +74,7 @@ need [BrowserNavigator](#BrowserNavigator).
 ```typescript
 import {Navigator} from '@mini-apps/navigation';
 
-// Create navigator instance
-const navigator = new Navigator({
-  // Enable logs
-  log: true,
-});
+const navigator = new Navigator();
 ```
 
 ##### Initialization
@@ -101,14 +97,14 @@ const listener = location => {
 
 // Add listener on location change. It is important to know, that this event
 // listener will be called only after calling special methods like
-// pushLocation, replaceLocation, go, back and forward
+// pushLocation, replaceLocation, processLocation and go
 navigator.on('location-changed', listener);
 
 // Will call event listeners
-navigator.pushLocation({modifiers: ['back']});
+navigator.processLocation({modifiers: ['back']});
 
 // Will NOT call event listeners
-navigator.pushLocation({modifiers: ['back']}, {silent: true});
+navigator.processLocation({modifiers: ['back']}, {silent: true});
 
 // Remove event listener
 navigator.off('location-changed', listener);
@@ -117,37 +113,30 @@ navigator.off('location-changed', listener);
 ##### Make navigator change location
 ```typescript
 // Push new location
-navigator.pushLocation({
-  view: 'onboarding',
-});
+navigator.processLocation({view: 'onboarding'});
 
 // Then open 1-time alert
-navigator.pushLocation({
+navigator.processLocation({
   view: 'onboarding',
   popup: 'my-alert',
   modifiers: ['shadow'],
 });
 
 // Then replace current location
-navigator.replaceLocation({
-  view: 'main',
-});
+navigator.replaceLocation({view: 'main'});
 
 // Return to onboarding
 navigator.go(-1);
-// or
-navigator.back();
 
 // Move forward to onboarding
-navigator.forward();
+navigator.go(1);
 ```
 
 ### BrowserNavigator
 
 `BrowserNavigator` is adopted for browser and works with `window.history`. It
-extends some `Navigator` methods like `on`, `off`, `back`, `forward`, `go`
-etc with some extra lines of code, which are written mostly to interact with
-browser's history.
+extends some `Navigator` methods like `on`, `off` and `go` with some extra 
+lines of code, which are written mostly to interact with browser's history.
 
 It rewires such functions as `window.history.pushState` and 
 `window.history.replaceState`, so then, each history item has stable state,
@@ -158,10 +147,7 @@ which contains current location index and location history.
 ```typescript
 import {BrowserNavigator} from '@mini-apps/navigation';
 
-const navigator = new BrowserNavigator({
-  // Log messages
-  log: true,
-});
+const navigator = new BrowserNavigator();
 ```
 
 ##### Initialization
@@ -179,7 +165,7 @@ To cancel overrides and remove event listener:
 navigator.unmount();
 ```
 
-**Initial navigator state**
+##### Initial navigator state
 
 To make navigator initialization easier, there is a function 
 `extractBrowserNavigatorSettings` which returns initial settings for navigator
@@ -200,8 +186,8 @@ history length is equal to 1, it understands that previously, it
 was not mounted here before. It replaces current location with
 modifier `root` which indicates about root location.
 
-##### `popstate` listening
-When `mount()` was called, navigator adds its own listener, which watches
+##### Popstate listener
+When `mount()` is called, navigator adds its own listener, which watches
 for location changes and automatically updates internal location. The logic
 is rather simple - it tries to extract location info from history item
 state and correctly updates navigator. But in case of fail, it will recognize 
