@@ -1,25 +1,23 @@
 import {Navigator} from '../Navigator';
 import {
   EventListenerFunc,
-  EventType, NavigatorCompleteLocationType,
+  EventType,
   NavigatorLocationType,
   SetLocationOptions,
 } from '../types';
 import {
   parseSegue,
-  createSegue, createLogger,
+  createLogger, createSegue,
 } from '../utils';
 import {
   BrowserHistoryState,
   BrowserNavigatorConstructorProps, BrowserNavigatorInitOptions,
-  BrowserNavigatorModeType,
 } from './types';
 import {isBrowserState} from './utils';
 
 export class BrowserNavigator {
-  private readonly mode: BrowserNavigatorModeType;
   private readonly navigator: Navigator;
-  private lastPopstateSegue: string | null = null;
+  private hash: string | null = null;
   private originalPushState = window.history.pushState.bind(window.history);
   private originalReplaceState = window.history.replaceState
     .bind(window.history);
@@ -30,10 +28,9 @@ export class BrowserNavigator {
   private readonly log: (...messages: any[]) => void;
 
   constructor(props: BrowserNavigatorConstructorProps = {}) {
-    const {mode = 'hash', log = false} = props;
+    const {log = false} = props;
 
     this.navigator = new Navigator(props);
-    this.mode = mode;
     this.log = log ? createLogger('BrowserNavigator') : () => {
     };
     this.log('Instance created');
@@ -44,6 +41,9 @@ export class BrowserNavigator {
    * location update
    */
   private onPopState = (e: PopStateEvent) => {
+    const prevHash = this.hash;
+    this.hash = window.location.hash;
+
     // If current location already has correct state, it means, it was added
     // by navigator
     if (isBrowserState(e.state)) {
@@ -70,15 +70,8 @@ export class BrowserNavigator {
     }
 
     // If state is incorrect, it means, this location is new for this navigator
-    const prevSegue = this.lastPopstateSegue;
-
-    // Reassign last found segue
-    this.lastPopstateSegue = this.mode === 'default'
-      ? window.location.pathname
-      : window.location.hash;
-
     // Try parsing it
-    const location = parseSegue(this.lastPopstateSegue);
+    const location = parseSegue(this.hash);
 
     // In case, location cannot be extracted, prevent routing and throw error
     if (location === null) {
@@ -88,13 +81,12 @@ export class BrowserNavigator {
 
     // In case, prev segue is equal to current one, browser will not push
     // new history item and we are doing it instead of him
-    if (prevSegue === this.lastPopstateSegue) {
+    if (prevHash === this.hash) {
       return this.pushLocation(location);
     }
 
     // Otherwise, location was pushed natively. So, we push it into navigator
     // and replace browser history state
-    const locationIndexIfBack = this.navigator.locationIndex + 1;
     const {
       location: parsedLocation, delta,
     } = this.navigator.pushLocation(location);
@@ -103,11 +95,11 @@ export class BrowserNavigator {
       this.createHistoryState(
         e.state,
         location.modifiers?.includes('back')
-          ? locationIndexIfBack
+          ? this.navigator.locationIndex - delta
           : this.navigator.locationIndex,
       ),
       '',
-      this.createHref(parsedLocation),
+      createSegue(parsedLocation),
     );
 
     if (delta < 0) {
@@ -160,7 +152,7 @@ export class BrowserNavigator {
           : this.navigator.locationIndex,
       ),
       '',
-      this.createHref(parsedLocation),
+      createSegue(parsedLocation),
     );
 
     // If it was back location we should go back. We do subtract 1 more because
@@ -197,7 +189,7 @@ export class BrowserNavigator {
           : this.navigator.locationIndex,
       ),
       '',
-      this.createHref(parsedLocation),
+      createSegue(parsedLocation),
     );
 
     // If it was back location we should go back
@@ -254,9 +246,9 @@ export class BrowserNavigator {
   }
 
   /**
-   * Overrides window history methods like pushState and replaceState
+   * Overrides history functions and adds event listener to popstate event
    */
-  overrideHistoryMethods() {
+  mount() {
     // Override pushState and fulfill with navigators data
     window.history.pushState = (
       data: any,
@@ -288,37 +280,18 @@ export class BrowserNavigator {
       }
       this.replaceState(parsedLocation);
     };
+    window.addEventListener('popstate', this.onPopState);
+    this.log('mount() called');
   }
 
   /**
-   * Restores overridden history methods
+   * Cancels all history functions rewires and removes event listener
    */
-  restoreHistoryMethods() {
+  unmount() {
     window.history.pushState = this.originalPushState;
     window.history.replaceState = this.originalReplaceState;
-  }
-
-  /**
-   * Adds event listener watching for history changes
-   */
-  addPopstateListener() {
-    window.addEventListener('popstate', this.onPopState);
-  }
-
-  /**
-   * Removes popstate listener
-   */
-  removePopstateListener() {
     window.removeEventListener('popstate', this.onPopState);
-  }
-
-  /**
-   * Creates links for specified location
-   * @param {NavigatorLocationType} location
-   * @returns {string}
-   */
-  createHref(location: NavigatorLocationType): string {
-    return (this.mode === 'default' ? '' : '#') + createSegue(location);
+    this.log('unmount() called');
   }
 
   /**
@@ -341,24 +314,6 @@ export class BrowserNavigator {
       this.log('Detected empty history. Replaced with root location');
       this.replaceState({modifiers: ['root']}, {silent: true});
     }
-  }
-
-  /**
-   * Overrides history functions and adds event listener to popstate event
-   */
-  mount() {
-    this.overrideHistoryMethods();
-    this.addPopstateListener();
-    this.log('mount() called');
-  }
-
-  /**
-   * Cancels all history functions rewires and removes event listener
-   */
-  unmount() {
-    this.restoreHistoryMethods();
-    this.removePopstateListener();
-    this.log('unmount() called');
   }
 
   /**
