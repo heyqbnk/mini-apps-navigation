@@ -43,15 +43,14 @@ is added by navigator by default to detect first location in stack.
 
 ### Modifier
 `Modifier` is a modification applied to location (which are URIs in web world). 
-Current package reserves some list of modifiers like `shadow`, `skip`,
-`back` and `root`. So, if navigator meets them while codeflow, it will behave 
-in a special way.
+Current package reserves some list of modifiers. So, if navigator meets them 
+while codeflow, it will behave in a special way.
 
 | Name | Behaviour |
 | --- | --- |
 | `root` | Indicates that this location is first in stack. Not allowed to replace or pushed |
 | `skip` | Makes navigator slide through locations stack. It is something like a gap in history which should be jumped |
-| `shadow` | Makes navigator replace this location with `skip` modifier after being visited. It is rather useful, when you want to visit some location only once |
+| `replace` | Makes navigator replace current location |
 | `back` | Makes navigator go back in history |
 
 ## Classes
@@ -63,6 +62,9 @@ relation to any of environments. I mean, that this is just a core, so, it
 does not work with something like `window.history` itself. It waits for someone
 who could do it for himself. `Navigator` just contains hard and main logic
 connected with navigation.
+
+If you are developing application which works with browser history you probably
+need [BrowserNavigator](#BrowserNavigator).
 
 [Definition](https://github.com/wolframdeus/mini-apps-navigation/blob/master/src/Navigator/Navigator.ts#L22)
 
@@ -169,24 +171,39 @@ const navigator = new BrowserNavigator({
 
 ##### Initialization
 When `window.history` becomes available, it is required to call navigator
-mount, to make him rewire `window.history.pushState` and 
-`window.history.replaceState`, add event listener to window's popstate event
-and try to extract location from current history state.
-
-In case, navigator cannot extract initial location, it watches if current
-history length is equal to 1, it understands that previously, it
-was not mounted here before. It replaces current location with
-modifier `root` which indicates about root location.
+init, to make him override `window.history.pushState` and 
+`window.history.replaceState` and add event listener to window's popstate event.
 
 ```typescript
-navigator.mount();
+navigator.init();
 ```
 
-To cancel rewires and remove event listener, you should call `unmount()`.
+To cancel overrides and remove event listener:
 
 ```typescript
 navigator.unmount();
 ```
+
+**Initial navigator state**
+
+To make navigator initialization easier, there is a function 
+`extractBrowserNavigatorSettings` which returns initial settings for navigator
+if it is possible.
+
+```typescript
+import {extractBrowserNavigatorSettings} from '@mini-apps/navigation';
+
+// Extract settings from browsers history
+const navigatorSettings = extractBrowserNavigatorSettings();
+
+// Initialize with received settings
+navigator.init(navigatorSettings ? navigatorSettings : undefined);
+```
+
+If first parameter in `init` was not passed, navigator watches if current
+history length is equal to 1, it understands that previously, it
+was not mounted here before. It replaces current location with
+modifier `root` which indicates about root location.
 
 ##### `popstate` listening
 When `mount()` was called, navigator adds its own listener, which watches
