@@ -1,19 +1,17 @@
 import {NavigatorCompleteLocationType} from '../types';
 
 /**
- * Options which are passed to emitLocationChanged
+ * List of options required to call emitStateChanged
  */
-export interface EmitLocationChangedOptions {
-  currentLocationIndex: number;
-  currentLocation?: NavigatorCompleteLocationType;
-  prevLocationIndex: number;
-  prevLocation?: NavigatorCompleteLocationType;
-}
-
-/**
- * Options which are passed to emitStackChanged
- */
-export interface EmitStackChangedOptions {
-  currentStack: NavigatorCompleteLocationType[];
-  prevStack: NavigatorCompleteLocationType[];
+export interface EmitEventsOptions {
+  location?: {
+    currentLocationIndex: number;
+    currentLocation?: NavigatorCompleteLocationType;
+    prevLocationIndex: number;
+    prevLocation?: NavigatorCompleteLocationType;
+  };
+  stack?: {
+    currentStack: NavigatorCompleteLocationType[];
+    prevStack: NavigatorCompleteLocationType[];
+  };
 }

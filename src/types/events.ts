@@ -1,19 +1,51 @@
 import {NavigatorCompleteLocationType} from './location';
 
+interface StateChangedEventParam {
+  location: {
+    currentLocation: NavigatorCompleteLocationType;
+    currentLocationIndex: number;
+    prevLocation: NavigatorCompleteLocationType;
+    prevLocationIndex: number;
+  };
+  stack: {
+    currentStack: NavigatorCompleteLocationType[];
+    prevStack: NavigatorCompleteLocationType[];
+  };
+}
+
 /**
  * Parameters returned to listeners for specified events
  */
 export interface EventListenersMap {
+  /**
+   * Is being called when current location is changed
+   * @param {NavigatorCompleteLocationType} currentLocation
+   * @param {number} currentLocationIndex
+   * @param {NavigatorCompleteLocationType} prevLocation
+   * @param {number} prevLocationIndex
+   */
   'location-changed': (
     currentLocation: NavigatorCompleteLocationType,
     currentLocationIndex: number,
-    previousLocation: NavigatorCompleteLocationType,
-    previousLocationIndex: number,
+    prevLocation: NavigatorCompleteLocationType,
+    prevLocationIndex: number,
   ) => void;
+
+  /**
+   * Is being called when locations stack is updated
+   * @param {NavigatorCompleteLocationType[]} currentStack
+   * @param {NavigatorCompleteLocationType[]} previousStack
+   */
   'stack-changed': (
     currentStack: NavigatorCompleteLocationType[],
     previousStack: NavigatorCompleteLocationType[],
   ) => void;
+
+  /**
+   * Is being called when location or locations stack is changed
+   * @param {StateChangedEventParam} state
+   */
+  'state-changed': (state: StateChangedEventParam) => void;
 }
 
 /**

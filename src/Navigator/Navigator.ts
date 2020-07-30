@@ -8,7 +8,7 @@ import {
 } from '../types';
 import {formatLocation, isTechLocation} from '../utils';
 import {isEmptyTechLocation} from './utils';
-import {EmitLocationChangedOptions, EmitStackChangedOptions} from './types';
+import {EmitEventsOptions} from './types';
 
 /**
  * Class which represents navigation core. Recommended only for creating
@@ -39,36 +39,54 @@ export class Navigator {
   private _locationIndex = 0;
 
   /**
-   * Calls listeners which are bound to "location-changed" event
-   * @param {EmitLocationChangedOptions} options
+   * Emits events
+   * @param {EmitEventsOptions} options
    */
-  private emitLocationChanged(options: EmitLocationChangedOptions) {
-    const {
-      currentLocation, currentLocationIndex, prevLocation, prevLocationIndex,
-    } = options;
+  private emitEvents(options: EmitEventsOptions) {
+    const {location, stack} = options;
 
     this.listeners.forEach(l => {
       if (l.event === 'location-changed') {
-        l.listener(
-          currentLocation || this._locationsStack[currentLocationIndex],
-          currentLocationIndex,
-          prevLocation || this._locationsStack[prevLocationIndex],
-          prevLocationIndex,
-        );
-      }
-    });
-  }
+        if (location) {
+          const {
+            currentLocation, currentLocationIndex, prevLocation,
+            prevLocationIndex,
+          } = location;
 
-  /**
-   * Calls listeners which are bound to "stack-changed" event
-   * @param options
-   */
-  emitStackChanged(options: EmitStackChangedOptions) {
-    const {currentStack, prevStack} = options;
+          l.listener(
+            currentLocation || this._locationsStack[currentLocationIndex],
+            currentLocationIndex,
+            prevLocation || this._locationsStack[prevLocationIndex],
+            prevLocationIndex,
+          );
+        }
+      } else if (l.event === 'stack-changed') {
+        if (stack) {
+          const {currentStack, prevStack} = stack;
 
-    this.listeners.forEach(l => {
-      if (l.event === 'stack-changed') {
-        l.listener(currentStack, prevStack);
+          l.listener(currentStack, prevStack);
+        }
+      } else if (l.event === 'state-changed') {
+        if (stack && location) {
+          const {currentStack, prevStack} = stack;
+          const {
+            currentLocation, currentLocationIndex, prevLocation,
+            prevLocationIndex,
+          } = location;
+
+          l.listener({
+            location: {
+              currentLocation: currentLocation || this._locationsStack[currentLocationIndex],
+              currentLocationIndex: currentLocationIndex,
+              prevLocation: prevLocation || this._locationsStack[prevLocationIndex],
+              prevLocationIndex,
+            },
+            stack: {
+              currentStack,
+              prevStack,
+            },
+          });
+        }
       }
     });
   }
@@ -95,6 +113,7 @@ export class Navigator {
     }
 
     // Increase location index, due to new location was pushed
+    const prevLocationIndex = this._locationIndex;
     this._locationIndex++;
 
     // Take all locations before current one including it and append new 
@@ -106,11 +125,16 @@ export class Navigator {
     ];
 
     if (!options.silent) {
-      this.emitLocationChanged({
-        currentLocationIndex: this._locationIndex,
-        prevLocationIndex: this._locationIndex - 1,
+      this.emitEvents({
+        location: {
+          currentLocationIndex: this._locationIndex,
+          prevLocationIndex,
+        },
+        stack: {
+          prevStack,
+          currentStack: this._locationsStack,
+        },
       });
-      this.emitStackChanged({prevStack, currentStack: this._locationsStack});
     }
 
     return {delta: 1, location: formattedLocation};
@@ -157,10 +181,12 @@ export class Navigator {
     this._locationsStack[this._locationIndex] = formattedLocation;
 
     if (!options.silent) {
-      this.emitLocationChanged({
-        prevLocationIndex: this._locationIndex,
-        prevLocation,
-        currentLocationIndex: this._locationIndex,
+      this.emitEvents({
+        location: {
+          prevLocationIndex: this._locationIndex,
+          prevLocation,
+          currentLocationIndex: this._locationIndex,
+        },
       });
     }
 
@@ -278,9 +304,11 @@ export class Navigator {
       this._locationIndex = nextIndex;
 
       if (!options.silent) {
-        this.emitLocationChanged({
-          currentLocationIndex: this._locationIndex,
-          prevLocationIndex: _locationIndex,
+        this.emitEvents({
+          location: {
+            currentLocationIndex: this._locationIndex,
+            prevLocationIndex: _locationIndex,
+          },
         });
       }
 
@@ -325,14 +353,16 @@ export class Navigator {
     this._locationsStack = locationsStack;
 
     // Emit events
-    this.emitLocationChanged({
-      currentLocationIndex: this._locationIndex,
-      prevLocationIndex,
-      prevLocation: prevLocationsStack[prevLocationIndex],
-    });
-    this.emitStackChanged({
-      currentStack: this._locationsStack,
-      prevStack: prevLocationsStack,
+    this.emitEvents({
+      location: {
+        currentLocationIndex: this._locationIndex,
+        prevLocationIndex,
+        prevLocation: prevLocationsStack[prevLocationIndex],
+      },
+      stack: {
+        currentStack: this._locationsStack,
+        prevStack: prevLocationsStack,
+      },
     });
   }
 
