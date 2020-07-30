@@ -1,6 +1,6 @@
 import {NavigatorCompleteLocationType} from './location';
 
-interface StateChangedEventParam {
+export interface StateChangedEventParam {
   location: {
     currentLocation: NavigatorCompleteLocationType;
     currentLocationIndex: number;
