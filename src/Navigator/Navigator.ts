@@ -8,6 +8,7 @@ import {
 } from '../types';
 import {formatLocation, isTechLocation} from '../utils';
 import {isEmptyTechLocation} from './utils';
+import {EmitLocationChangedOptions, EmitStackChangedOptions} from './types';
 
 /**
  * Class which represents navigation core. Recommended only for creating
@@ -39,13 +40,35 @@ export class Navigator {
 
   /**
    * Calls listeners which are bound to "location-changed" event
+   * @param {EmitLocationChangedOptions} options
    */
-  private emitLocationChanged() {
-    const location = this.location;
+  private emitLocationChanged(options: EmitLocationChangedOptions) {
+    const {
+      currentLocation, currentLocationIndex, prevLocation, prevLocationIndex,
+    } = options;
 
-    this.listeners.forEach(({event, listener}) => {
-      if (event === 'location-changed') {
-        listener(location, this._locationIndex, this._locationsStack);
+    this.listeners.forEach(l => {
+      if (l.event === 'location-changed') {
+        l.listener(
+          currentLocation || this._locationsStack[currentLocationIndex],
+          currentLocationIndex,
+          prevLocation || this._locationsStack[prevLocationIndex],
+          prevLocationIndex,
+        );
+      }
+    });
+  }
+
+  /**
+   * Calls listeners which are bound to "stack-changed" event
+   * @param options
+   */
+  emitStackChanged(options: EmitStackChangedOptions) {
+    const {currentStack, prevStack} = options;
+
+    this.listeners.forEach(l => {
+      if (l.event === 'stack-changed') {
+        l.listener(currentStack, prevStack);
       }
     });
   }
@@ -76,13 +99,18 @@ export class Navigator {
 
     // Take all locations before current one including it and append new 
     // location
+    const prevStack = this._locationsStack;
     this._locationsStack = [
       ...this._locationsStack.slice(0, this._locationIndex),
       formattedLocation,
     ];
 
     if (!options.silent) {
-      this.emitLocationChanged();
+      this.emitLocationChanged({
+        currentLocationIndex: this._locationIndex,
+        prevLocationIndex: this._locationIndex - 1,
+      });
+      this.emitStackChanged({prevStack, currentStack: this._locationsStack});
     }
 
     return {delta: 1, location: formattedLocation};
@@ -125,10 +153,15 @@ export class Navigator {
       );
     }
 
+    const prevLocation = this._locationsStack[this._locationIndex];
     this._locationsStack[this._locationIndex] = formattedLocation;
 
     if (!options.silent) {
-      this.emitLocationChanged();
+      this.emitLocationChanged({
+        prevLocationIndex: this._locationIndex,
+        prevLocation,
+        currentLocationIndex: this._locationIndex,
+      });
     }
 
     return {delta: 0, location: formattedLocation};
@@ -245,7 +278,10 @@ export class Navigator {
       this._locationIndex = nextIndex;
 
       if (!options.silent) {
-        this.emitLocationChanged();
+        this.emitLocationChanged({
+          currentLocationIndex: this._locationIndex,
+          prevLocationIndex: _locationIndex,
+        });
       }
 
       return {delta: nextIndex - _locationIndex, location: this.location};
@@ -281,8 +317,23 @@ export class Navigator {
         'not by Navigator',
       );
     }
+
+    // Reassign internal data
+    const prevLocationIndex = this._locationIndex;
+    const prevLocationsStack = this._locationsStack;
     this._locationIndex = index;
     this._locationsStack = locationsStack;
+
+    // Emit events
+    this.emitLocationChanged({
+      currentLocationIndex: this._locationIndex,
+      prevLocationIndex,
+      prevLocation: prevLocationsStack[prevLocationIndex],
+    });
+    this.emitStackChanged({
+      currentStack: this._locationsStack,
+      prevStack: prevLocationsStack,
+    });
   }
 
   /**

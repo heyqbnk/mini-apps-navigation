@@ -5,9 +5,14 @@ import {NavigatorCompleteLocationType} from './location';
  */
 export interface EventListenersMap {
   'location-changed': (
-    location: NavigatorCompleteLocationType,
-    locationIndex: number,
-    locationsStack: NavigatorCompleteLocationType[],
+    currentLocation: NavigatorCompleteLocationType,
+    currentLocationIndex: number,
+    previousLocation: NavigatorCompleteLocationType,
+    previousLocationIndex: number,
+  ) => void;
+  'stack-changed': (
+    currentStack: NavigatorCompleteLocationType[],
+    previousStack: NavigatorCompleteLocationType[],
   ) => void;
 }
 
