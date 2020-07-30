@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.5.1](https://github.com/wolframdeus/mini-apps-navigation/compare/v1.5.0...v1.5.1) (2020-07-30)
+
+
+### Bug Fixes
+
+* **events:** export type StateChangedEventParam ([c4040eb](https://github.com/wolframdeus/mini-apps-navigation/commit/c4040eb35a1584b5be585970afe31fc042a7615d))
+
 ## [1.5.0](https://github.com/wolframdeus/mini-apps-navigation/compare/v1.4.0...v1.5.0) (2020-07-30)
 
 
