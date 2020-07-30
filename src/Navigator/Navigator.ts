@@ -67,26 +67,18 @@ export class Navigator {
           l.listener(currentStack, prevStack);
         }
       } else if (l.event === 'state-changed') {
-        if (stack && location) {
-          const {currentStack, prevStack} = stack;
-          const {
-            currentLocation, currentLocationIndex, prevLocation,
-            prevLocationIndex,
-          } = location;
-
-          l.listener({
-            location: {
-              currentLocation: currentLocation || this._locationsStack[currentLocationIndex],
-              currentLocationIndex: currentLocationIndex,
-              prevLocation: prevLocation || this._locationsStack[prevLocationIndex],
-              prevLocationIndex,
-            },
-            stack: {
-              currentStack,
-              prevStack,
-            },
-          });
+        if (!stack && !location) {
+          return;
         }
+        // const {currentStack, prevStack} = stack;
+        // const {
+        //   currentLocation, currentLocationIndex, prevLocation,
+        //   prevLocationIndex,
+        // } = location;
+
+        l.listener({
+          stack, location
+        });
       }
     });
   }

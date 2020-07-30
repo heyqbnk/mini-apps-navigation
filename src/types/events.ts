@@ -1,13 +1,13 @@
 import {NavigatorCompleteLocationType} from './location';
 
 export interface StateChangedEventParam {
-  location: {
+  location?: {
     currentLocation: NavigatorCompleteLocationType;
     currentLocationIndex: number;
     prevLocation: NavigatorCompleteLocationType;
     prevLocationIndex: number;
   };
-  stack: {
+  stack?: {
     currentStack: NavigatorCompleteLocationType[];
     prevStack: NavigatorCompleteLocationType[];
   };
