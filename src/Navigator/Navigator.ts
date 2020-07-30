@@ -4,7 +4,9 @@ import {
   EventListenerFunc,
   NavigatorLocationType,
   ChangeLocationResult,
-  NavigatorCompleteLocationType, SetLocationOptions,
+  NavigatorCompleteLocationType,
+  SetLocationOptions,
+  StateChangedEventParamLocation,
 } from '../types';
 import {formatLocation, isTechLocation} from '../utils';
 import {isEmptyTechLocation} from './utils';
@@ -70,14 +72,25 @@ export class Navigator {
         if (!stack && !location) {
           return;
         }
-        // const {currentStack, prevStack} = stack;
-        // const {
-        //   currentLocation, currentLocationIndex, prevLocation,
-        //   prevLocationIndex,
-        // } = location;
+        let loc: StateChangedEventParamLocation | null = null;
+
+        if (location) {
+          const {
+            currentLocation, currentLocationIndex, prevLocation,
+            prevLocationIndex,
+          } = location;
+
+          loc = {
+            currentLocation: currentLocation || this._locationsStack[currentLocationIndex],
+            currentLocationIndex: currentLocationIndex,
+            prevLocation: prevLocation || this._locationsStack[prevLocationIndex],
+            prevLocationIndex: prevLocationIndex,
+          };
+        }
 
         l.listener({
-          stack, location
+          stack,
+          location: loc || undefined,
         });
       }
     });
