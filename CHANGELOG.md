@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.5.2](https://github.com/wolframdeus/mini-apps-navigation/compare/v1.5.1...v1.5.2) (2020-07-30)
+
+
+### Bug Fixes
+
+* **events:** make StateChangedEventParam fields optional ([3bff90e](https://github.com/wolframdeus/mini-apps-navigation/commit/3bff90e3f78fa3e2e78a510102c3e95391e2834e))
+* **state-changed:** fixed a but for state-changed call statement event ([610ffa5](https://github.com/wolframdeus/mini-apps-navigation/commit/610ffa589761eb32cd99819431c5af95375d70ec))
+
 ### [1.5.1](https://github.com/wolframdeus/mini-apps-navigation/compare/v1.5.0...v1.5.1) (2020-07-30)
 
 
