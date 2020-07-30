@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.4.0](https://github.com/wolframdeus/mini-apps-navigation/compare/v1.3.0...v1.4.0) (2020-07-30)
+
+
+### Features
+
+* **events:** add event stack-changed and rework location-changed ([5e348a1](https://github.com/wolframdeus/mini-apps-navigation/commit/5e348a11c841b5d2e917e78f54970bdb8b3cb88c))
+
 ## [1.3.0](https://github.com/wolframdeus/mini-apps-navigation/compare/v1.2.1...v1.3.0) (2020-07-28)
 
 
