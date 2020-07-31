@@ -1,6 +1,6 @@
 {
   "name": "@mini-apps/navigation",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "description": "Navigation library for VK Mini Apps",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
