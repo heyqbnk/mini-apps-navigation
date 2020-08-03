@@ -18,10 +18,10 @@ export interface StateChangedEventParam {
  */
 export interface EventListenersMap {
   /**
-   * Is being called when location or locations stack is changed
+   * Is being called when state or history is changed
    * @param {StateChangedEventParam} state
    */
-  'state-changed': (state: StateChangedEventParam) => void;
+  change: (state: StateChangedEventParam) => void;
 }
 
 /**

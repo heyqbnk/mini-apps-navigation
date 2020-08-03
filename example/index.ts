@@ -66,7 +66,7 @@ createAnchor('Replace link (onboarding) ', {
 });
 
 const initOptions = extractInitOptions();
-nav.on('state-changed', updateHistory);
+nav.on('change', updateHistory);
 nav.init(initOptions ? initOptions : undefined);
 
 updateHistory();

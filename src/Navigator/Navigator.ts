@@ -44,7 +44,7 @@ export class Navigator implements INavigator {
     const {history, state} = options;
 
     this.listeners.forEach(l => {
-      if (l.event === 'state-changed') {
+      if (l.event === 'change') {
         if (!history && !state) {
           return;
         }
