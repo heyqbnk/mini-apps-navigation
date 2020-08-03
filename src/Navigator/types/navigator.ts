@@ -23,7 +23,7 @@ export interface ChangeLocationResult {
   /**
    * Final state found when state change ended
    */
-  state: NavigatorState;
+  state: NavigatorState | null;
 }
 
 /**
@@ -48,13 +48,15 @@ export interface SilentOption {
   silent?: boolean;
 }
 
-export interface PushStateOptions extends SilentOption {
+export interface IndexOption {
   /**
-   * Position index where state should be inserted
+   * Position index for which action should be applied
    * @default Current index
    */
   index?: number;
+}
 
+export interface PushStateOptions extends SilentOption, IndexOption {
   /**
    * Should all states after passed index be dropped
    * @default false
@@ -62,12 +64,7 @@ export interface PushStateOptions extends SilentOption {
   drop?: boolean;
 }
 
-export interface ReplaceLocationOptions extends SilentOption {
-  /**
-   * Position index where state should be replaced
-   * @default Current index
-   */
-  index?: number;
+export interface ReplaceLocationOptions extends SilentOption, IndexOption {
 }
 
 export interface GoOptions extends SilentOption {
@@ -82,7 +79,7 @@ export interface INavigator {
   /**
    * Current state
    */
-  state: NavigatorState;
+  state: NavigatorState | null;
 
   /**
    * Locations stack

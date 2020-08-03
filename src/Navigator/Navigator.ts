@@ -98,11 +98,6 @@ export class Navigator implements INavigator {
   }
 
   get state() {
-    if (!this._state) {
-      throw new Error(
-        'Unable to get state due to Navigator\'s history is empty',
-      );
-    }
     return this._state;
   }
 
@@ -156,15 +151,13 @@ export class Navigator implements INavigator {
         ? this._history.length
         : nextIndex);
 
-    if (nextIndex === previousIndex) {
-      return {delta: 0, state: this.state};
-    }
-    this._state = this._history[nextIndex];
+    if (nextIndex !== previousIndex) {
+      this._state = this._history[nextIndex];
 
-    if (!silent) {
-      this.emitEvents({state: {previousIndex}});
+      if (!silent) {
+        this.emitEvents({state: {previousIndex}});
+      }
     }
-
     return {delta: nextIndex - previousIndex, state: this._state};
   }
 
