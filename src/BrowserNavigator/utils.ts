@@ -1,7 +1,8 @@
 import qs from 'querystring';
 import {BrowserHistoryState, InitOptions} from './types';
 import {Maybe} from '../types';
-import {NavigatorState} from '../Navigator/types';
+import {NavigatorSimplifiedState, NavigatorState} from '../Navigator/types';
+import {fulfillState} from '../Navigator';
 
 /**
  * States if value is object
@@ -69,7 +70,7 @@ export function extractInitOptions(): InitOptions | null {
 }
 
 /**
- * Parses link and returns navigator location in case, it could be derived
+ * Parses link and returns navigator state in case, it could be derived
  * @param {string} link
  * @returns {NavigatorState | null}
  */
@@ -105,28 +106,25 @@ export function parseLink(link: string): NavigatorState | null {
   const [view = '', modal = null, popup = null] = linkValue
     .split('/')
     .map(decodeURIComponent);
-
-  // Otherwise return location
   const params = qs.parse(search);
 
   return {view, modal, popup, params, modifiers};
 }
 
 /**
- * Creates link to get into new location
- * @param {NavigatorState} location
+ * Creates link to get into new state
  * @returns {string}
+ * @param state
  */
-export function createLink(location: NavigatorState): string {
-  const modifiersPart = 'modifiers' in location && location.modifiers.length > 0
-    ? location.modifiers.map(encodeURIComponent).join(',') + '://'
+export function createLink(
+  state: NavigatorState | NavigatorSimplifiedState,
+): string {
+  const formattedState = fulfillState(state);
+  const modifiersPart = formattedState.modifiers.length > 0
+    ? formattedState.modifiers.map(encodeURIComponent).join(',') + '://'
     : '';
 
-  if (!('view' in location)) {
-    return '#' + modifiersPart;
-  }
-
-  const {modal, view, params, popup} = location;
+  const {modal, view, params, popup} = formattedState;
   const valuePart = (view ? encodeURIComponent(view) : '') +
     `/${modal ? encodeURIComponent(modal) : ''}` +
     `/${popup ? encodeURIComponent(popup) : ''}`;
