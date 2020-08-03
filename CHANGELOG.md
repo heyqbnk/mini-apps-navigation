@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.0.5](https://github.com/wolframdeus/mini-apps-navigation/compare/v2.0.4...v2.0.5) (2020-08-03)
+
+
+### Bug Fixes
+
+* **navigator.replacestate:** bugfix for emitted events ([ad26b0e](https://github.com/wolframdeus/mini-apps-navigation/commit/ad26b0e3b80d04f92ecd3ad7e98de664fa45f135))
+
 ### [2.0.4](https://github.com/wolframdeus/mini-apps-navigation/compare/v2.0.3...v2.0.4) (2020-08-03)
 
 
