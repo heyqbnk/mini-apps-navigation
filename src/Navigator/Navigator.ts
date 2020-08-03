@@ -133,11 +133,16 @@ export class Navigator implements INavigator {
     const {index = this.index, silent} = options;
     this.validateIndex(index);
 
-    const prevState = this._history[index];
+    const prevHistory = [...this._history];
+    const prevState = this._state;
+    this._state = state;
     this._history[index] = state;
 
     if (!silent) {
-      this.emitEvents({state: {previousIndex: index, previous: prevState}});
+      this.emitEvents({
+        state: {previousIndex: index, previous: prevState},
+        history: {previous: prevHistory},
+      });
     }
   };
 
