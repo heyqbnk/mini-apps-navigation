@@ -1,381 +1,197 @@
 import {
+  EmitEventsOptions,
+  INavigator,
   EventListener,
   EventType,
   EventListenerFunc,
-  NavigatorLocationType,
-  ChangeLocationResult,
-  NavigatorCompleteLocationType,
-  SetLocationOptions,
-  StateChangedEventParamLocation,
-} from '../types';
-import {formatLocation, isTechLocation} from '../utils';
-import {isEmptyTechLocation} from './utils';
-import {EmitEventsOptions} from './types';
+  PushStateOptions, ReplaceLocationOptions, GoOptions, StateChangedEventParam,
+} from './types';
+import {NavigatorState} from './types';
 
 /**
  * Class which represents navigation core. Recommended only for creating
- * new navigator
+ * new navigator class
  * @see https://github.com/wolframdeus/mini-apps-navigation/blob/master/src/BrowserNavigator/BrowserNavigator.ts#L18
  */
-export class Navigator {
+export class Navigator implements INavigator {
   /**
    * List of bound listeners
-   * @type {EventListener[]}
+   * @type {any[]}
+   * @private
    */
   private listeners: EventListener[] = [];
 
   /**
-   * Locations stack. Represents locations history. First entry should
-   * be a location which has modifier "root" to let navigator know this is
-   * first entry
-   * @type {{modifiers: string[]}[]}
+   * Locations history
+   * @type {any[]}
+   * @private
    */
-  private _locationsStack: NavigatorCompleteLocationType[] = [{
-    modifiers: ['root'],
-  }];
+  private _history: NavigatorState[] = [];
 
   /**
-   * Current stack location index
-   * @type {number}
+   * Current state
+   * @type {NavigatorState | null}
+   * @private
    */
-  private _locationIndex = 0;
+  private _state: NavigatorState | null = null;
 
   /**
-   * Emits events
+   * Emits all bound events
+   * @private
    * @param {EmitEventsOptions} options
    */
   private emitEvents(options: EmitEventsOptions) {
-    const {location, stack} = options;
+    const {history, state} = options;
 
     this.listeners.forEach(l => {
-      if (l.event === 'location-changed') {
-        if (location) {
-          const {
-            currentLocation, currentLocationIndex, prevLocation,
-            prevLocationIndex,
-          } = location;
-
-          l.listener(
-            currentLocation || this._locationsStack[currentLocationIndex],
-            currentLocationIndex,
-            prevLocation || this._locationsStack[prevLocationIndex],
-            prevLocationIndex,
-          );
-        }
-      } else if (l.event === 'stack-changed') {
-        if (stack) {
-          const {currentStack, prevStack} = stack;
-
-          l.listener(currentStack, prevStack);
-        }
-      } else if (l.event === 'state-changed') {
-        if (!stack && !location) {
+      if (l.event === 'state-changed') {
+        if (!history && !state) {
           return;
         }
-        let loc: StateChangedEventParamLocation | null = null;
+        let formattedState: StateChangedEventParam['state'] | null = null;
 
-        if (location) {
+        if (state) {
           const {
-            currentLocation, currentLocationIndex, prevLocation,
-            prevLocationIndex,
-          } = location;
+            currentIndex = this.index, previous, previousIndex,
+          } = state;
 
-          loc = {
-            currentLocation: currentLocation || this._locationsStack[currentLocationIndex],
-            currentLocationIndex: currentLocationIndex,
-            prevLocation: prevLocation || this._locationsStack[prevLocationIndex],
-            prevLocationIndex: prevLocationIndex,
+          formattedState = {
+            current: this._history[currentIndex],
+            currentIndex,
+            previous: previous || this._history[previousIndex],
+            previousIndex,
           };
         }
 
         l.listener({
-          stack,
-          location: loc || undefined,
+          history: history
+            ? {...history, current: this._history}
+            : undefined,
+          state: formattedState || undefined,
         });
       }
     });
   }
 
   /**
-   * Inserts location on current position, removing each location
-   * after it. Works the same as browser history state push
-   * @param {NavigatorCompleteLocationType} location
-   * @param options
+   * Checks if index is in bounds. In case, its not, throws an error
+   * @param {number} index
+   * @param includeRight
    */
-  pushLocation(
-    location: NavigatorCompleteLocationType,
-    options: SetLocationOptions = {},
-  ): ChangeLocationResult {
-    const formattedLocation = formatLocation(location);
-    const {modifiers} = formattedLocation;
+  private validateIndex(index: number, includeRight = false) {
+    const rightModifier = includeRight ? 1 : 0;
 
-    if (isEmptyTechLocation(formattedLocation)) {
-      throw new Error('Unable to push empty tech location');
+    if (index < 0 || index >= (this._history.length + rightModifier)) {
+      throw new Error('Location index is out of bounds');
     }
-
-    if (modifiers.includes('root')) {
-      throw new Error('Root location push is forbidden');
-    }
-
-    // Increase location index, due to new location was pushed
-    const prevLocationIndex = this._locationIndex;
-    this._locationIndex++;
-
-    // Take all locations before current one including it and append new 
-    // location
-    const prevStack = this._locationsStack;
-    this._locationsStack = [
-      ...this._locationsStack.slice(0, this._locationIndex),
-      formattedLocation,
-    ];
-
-    if (!options.silent) {
-      this.emitEvents({
-        location: {
-          currentLocationIndex: this._locationIndex,
-          prevLocationIndex,
-        },
-        stack: {
-          prevStack,
-          currentStack: this._locationsStack,
-        },
-      });
-    }
-
-    return {delta: 1, location: formattedLocation};
   }
 
-  /**
-   * Pushes location with "back" modifier
-   * @param {NavigatorCompleteLocationType} location
-   * @param {SetLocationOptions} options
-   * @returns {ChangeLocationResult}
-   */
-  pushBackLocation(
-    location: NavigatorCompleteLocationType,
-    options: SetLocationOptions = {},
-  ): ChangeLocationResult {
-    this.pushLocation({modifiers: ['skip']}, {silent: true});
-    return this.go(-2, options);
+  get index() {
+    if (!this._state) {
+      return -1;
+    }
+    return this._history.indexOf(this._state);
   }
 
-  /**
-   * Replaces last added location
-   * @param {NavigatorLocationType} location
-   * @param {SetLocationOptions} options
-   */
-  replaceLocation(
-    location: NavigatorLocationType,
-    options: SetLocationOptions = {},
-  ): ChangeLocationResult {
-    const formattedLocation = formatLocation(location);
-    const {modifiers} = formattedLocation;
+  get history() {
+    return this._history;
+  }
 
-    if (isEmptyTechLocation(formattedLocation)) {
-      throw new Error('Unable to replace current location with empty one');
-    }
-
-    if (modifiers.includes('root') && this._locationIndex !== 0) {
+  get state() {
+    if (!this._state) {
       throw new Error(
-        'Unable to replace current location because "root" modifier was ' +
-        'passed and current location is not first in stack',
+        'Unable to get state due to Navigator\'s history is empty',
       );
     }
+    return this._state;
+  }
 
-    const prevLocation = this._locationsStack[this._locationIndex];
-    this._locationsStack[this._locationIndex] = formattedLocation;
+  pushState(state: NavigatorState, options: PushStateOptions = {}) {
+    const previousIndex = this.index;
+    const {drop, silent, index = previousIndex + 1} = options;
+    this.validateIndex(index, true);
 
-    if (!options.silent) {
-      this.emitEvents({
-        location: {
-          prevLocationIndex: this._locationIndex,
-          prevLocation,
-          currentLocationIndex: this._locationIndex,
-        },
-      });
+    // Update state
+    this._state = state;
+
+    // Save prev history
+    const prevHistory = this.history;
+
+    // If drop is required, drop locations after inserted one
+    if (drop) {
+      this._history = [...this._history.slice(0, index), state];
+    }
+    // Otherwise, just insert
+    else {
+      this._history.splice(index, 0, state);
     }
 
-    return {delta: 0, location: formattedLocation};
+    if (!silent) {
+      this.emitEvents({
+        state: {previousIndex},
+        history: {previous: prevHistory},
+      });
+    }
   };
 
-  /**
-   * Processes new location
-   * @param {NavigatorLocationType} location
-   * @param options
-   */
-  processLocation(
-    location: NavigatorLocationType,
-    options: SetLocationOptions = {},
-  ): ChangeLocationResult {
-    const formattedLocation = formatLocation(location);
-    const {modifiers} = formattedLocation;
+  replaceState(state: NavigatorState, options: ReplaceLocationOptions = {}) {
+    const {index = this.index, silent} = options;
+    this.validateIndex(index);
 
-    // In case, we met tech location where there are no modifiers, we should
-    // throw an error
-    if (isTechLocation(location) && modifiers.length === 0) {
-      throw new Error('pushLocation received empty location');
+    const prevState = this._history[index];
+    this._history[index] = state;
+
+    if (!silent) {
+      this.emitEvents({state: {previousIndex: index, previous: prevState}});
     }
-
-    if (modifiers.includes('replace')) {
-      return this.replaceLocation(formattedLocation, options);
-    }
-
-    if (modifiers.includes('back')) {
-      return this.pushBackLocation(formattedLocation, options);
-    }
-
-    return this.pushLocation(formattedLocation, options);
   };
 
-  /**
-   * Returns current location index
-   * @returns {number}
-   */
-  get locationIndex() {
-    return this._locationIndex;
+  go(delta: number, options: GoOptions = {}) {
+    const {silent} = options;
+    const previousIndex = this.index;
+    let nextIndex = previousIndex + delta;
+    nextIndex = nextIndex < 0
+      ? 0
+      : (nextIndex >= this._history.length
+        ? this._history.length
+        : nextIndex);
+
+    if (nextIndex === previousIndex) {
+      return {delta: 0, state: this.state};
+    }
+    this._state = this._history[nextIndex];
+
+    if (!silent) {
+      this.emitEvents({state: {previousIndex}});
+    }
+
+    return {delta: nextIndex - previousIndex, state: this._state};
   }
 
-  /**
-   * Returns current locations stack
-   * @returns {number}
-   */
-  get locationsStack() {
-    return this._locationsStack;
+  goTo(index: number, options?: GoOptions) {
+    return this.go(index - this.index, options);
   }
 
-  /**
-   * Returns current location
-   * @returns {NavigatorCompleteLocationType}
-   */
-  get location(): NavigatorCompleteLocationType {
-    return this._locationsStack[this._locationIndex];
-  }
-
-  /**
-   * Goes through stack and reassigns current location. Returns
-   * navigation change results
-   * @param {number} delta
-   * @param {SetLocationOptions} options
-   * @returns {ChangeLocationResult}
-   */
-  go(
-    delta: number,
-    options: SetLocationOptions = {},
-  ): ChangeLocationResult {
-    const {_locationIndex, _locationsStack} = this;
-    let nextIndex = _locationIndex + delta;
-
-    if (nextIndex < 0) {
-      nextIndex = 0;
-    } else if (nextIndex >= _locationsStack.length) {
-      nextIndex = _locationsStack.length - 1;
+  init(state: NavigatorState, history: NavigatorState[]) {
+    if (!history.includes(state)) {
+      throw new Error('History does not include passed state');
     }
-
-    if (nextIndex === _locationIndex) {
-      return {delta: 0, location: this.location};
-    }
-
-    const direction = delta > 0 ? 'forward' : 'backward';
-
-    // We have a case when nextIndex refers to location which should be
-    // slided (has "skip" modifier). So, we have to slide until non-slideable
-    // location is found. In case, it cannot be found, we should go the
-    // opposite direction from nextIndex
-    const location = _locationsStack[nextIndex];
-
-    if (location.modifiers.includes('skip')) {
-      const testStack = direction === 'forward'
-        ? [
-          ..._locationsStack.slice(nextIndex + 1),
-          ..._locationsStack
-            .slice(_locationIndex + 1, nextIndex)
-            .reverse(),
-        ]
-        : [
-          ..._locationsStack.slice(0, nextIndex).reverse(),
-          ..._locationsStack.slice(nextIndex + 1, this._locationIndex),
-        ];
-
-      const compatibleLocation = testStack.find(l => {
-        return !l.modifiers.includes('skip');
-      });
-
-      nextIndex = !compatibleLocation
-        ? _locationIndex
-        : _locationsStack.indexOf(compatibleLocation);
-    }
-
-    if (nextIndex !== _locationIndex) {
-      this._locationIndex = nextIndex;
-
-      if (!options.silent) {
-        this.emitEvents({
-          location: {
-            currentLocationIndex: this._locationIndex,
-            prevLocationIndex: _locationIndex,
-          },
-        });
-      }
-
-      return {delta: nextIndex - _locationIndex, location: this.location};
-    }
-
-    return {delta: 0, location: this.location};
-  }
-
-  /**
-   * Sets initial values for navigator
-   */
-  init(
-    index: number,
-    locationsStack: NavigatorCompleteLocationType[],
-  ) {
-    if (index < 0 || locationsStack.length <= index) {
-      throw new Error('Invalid index was passed (out of bounds)');
-    }
-    const [firstLocation] = locationsStack;
-    const hasRootModifier = firstLocation.modifiers.includes('root');
-
-    if (!hasRootModifier) {
-      throw new Error(
-        'Unable to initialize locations stack where the first location ' +
-        'has no "root" modifier. Probably, stack is corrupted',
-      );
-    }
-
-    if (firstLocation.modifiers.includes('skip')) {
-      throw new Error(
-        'Unable to initialize locations stack where root location ' +
-        'contains forbidden modifiers. Probably, this location was created ' +
-        'not by Navigator',
-      );
-    }
-
     // Reassign internal data
-    const prevLocationIndex = this._locationIndex;
-    const prevLocationsStack = this._locationsStack;
-    this._locationIndex = index;
-    this._locationsStack = locationsStack;
+    const previousIndex = this.index;
+    const prevHistory = this._history;
+    this._state = state;
+    this._history = history;
 
     // Emit events
     this.emitEvents({
-      location: {
-        currentLocationIndex: this._locationIndex,
-        prevLocationIndex,
-        prevLocation: prevLocationsStack[prevLocationIndex],
+      state: {
+        previousIndex,
+        previous: prevHistory[previousIndex] || null,
       },
-      stack: {
-        currentStack: this._locationsStack,
-        prevStack: prevLocationsStack,
-      },
+      history: {previous: prevHistory},
     });
   }
 
-  /**
-   * Adds listener for specified event
-   * @param {E} event
-   * @param {EventListenerFunc<E>} listener
-   */
   on = <E extends EventType>(
     event: E,
     listener: EventListenerFunc<E>,
@@ -383,11 +199,6 @@ export class Navigator {
     this.listeners.push({event, listener} as any);
   };
 
-  /**
-   * Removes listener from specified event
-   * @param {E} event
-   * @param {EventListenerFunc<E>} listener
-   */
   off = <E extends EventType>(
     event: E,
     listener: EventListenerFunc<E>,

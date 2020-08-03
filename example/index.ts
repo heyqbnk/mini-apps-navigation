@@ -1,8 +1,7 @@
 import {
   BrowserNavigator,
-  NavigatorLocationType,
-  extractBrowserNavigatorSettings,
-  createSegue,
+  extractInitOptions,
+  createLink, NavigatorState,
 } from '../src';
 
 const nav = new BrowserNavigator();
@@ -12,9 +11,9 @@ window.nav = nav;
 const log = document.getElementById('log') as HTMLDivElement;
 const backHref = document.getElementById('back-href') as HTMLAnchorElement;
 
-function createLink(text: string, location: NavigatorLocationType) {
+function createAnchor(text: string, state: Partial<NavigatorState>) {
   const link = document.createElement('a');
-  link.href = createSegue(location);
+  link.href = createLink({view: '', params: {}, modifiers: [], ...state});
   link.innerText = text;
   link.style.display = 'block';
 
@@ -28,7 +27,7 @@ function updateHistory() {
     const line = document.createElement('div');
     line.className = 'location';
 
-    if (idx === nav.locationIndex) {
+    if (idx === nav.index) {
       line.classList.add('current-location');
     }
     if (location.modifiers.includes('skip')) {
@@ -39,21 +38,21 @@ function updateHistory() {
   });
 }
 
-backHref.href = createSegue({modifiers: ['back']});
+backHref.href = createLink({view: '', params: {}, modifiers: ['back']});
 
-createLink('onboarding', {view: 'onboarding'});
-createLink('friends', {view: 'friends'});
-createLink('friends / Vlad', {
+createAnchor('onboarding', {view: 'onboarding'});
+createAnchor('friends', {view: 'friends'});
+createAnchor('friends / Vlad', {
   view: 'friends', params: {
     name: 'Vlad',
   },
 });
-createLink('friends / Vlad / Info (modal)', {
+createAnchor('friends / Vlad / Info (modal)', {
   view: 'friends',
   modal: 'info',
   params: {name: 'Vlad'},
 });
-createLink('friends / Vlad / Info (modal) / Delete friend confirm (alert)', {
+createAnchor('friends / Vlad / Info (modal) / Delete friend confirm (alert)', {
   view: 'friends',
   modal: 'info',
   popup: 'delete',
@@ -61,10 +60,13 @@ createLink('friends / Vlad / Info (modal) / Delete friend confirm (alert)', {
   params: {name: 'Vlad'},
 });
 
-createLink('Replace link (onboarding) ', {view: 'onboarding'});
+createAnchor('Replace link (onboarding) ', {
+  view: 'onboarding',
+  modifiers: ['replace'],
+});
 
-const navigatorInfo = extractBrowserNavigatorSettings();
-nav.on('location-changed', updateHistory);
-nav.init(navigatorInfo ? navigatorInfo : undefined);
+const initOptions = extractInitOptions();
+nav.on('state-changed', updateHistory);
+nav.init(initOptions ? initOptions : undefined);
 
 updateHistory();

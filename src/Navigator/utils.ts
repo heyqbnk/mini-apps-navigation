@@ -1,13 +1,49 @@
-import {isTechLocation} from '../utils';
-import {NavigatorLocationType, NavigatorTechLocation} from '../types';
+import {NavigatorSimplifiedState, NavigatorState} from './types';
 
 /**
- * States if location is empty tech location
- * @param {NavigatorLocationType} location
- * @returns {location is NavigatorTechLocation}
+ * Converts simplified state to normal
+ * @param {NavigatorSimplifiedState} state
+ * @returns {NavigatorState}
  */
-export function isEmptyTechLocation(
-  location: NavigatorLocationType
-): location is NavigatorTechLocation {
-  return isTechLocation(location) && location.modifiers.length === 0;
+export function fulfillState(
+  state: NavigatorState | NavigatorSimplifiedState,
+): NavigatorState {
+  const {params, modifiers, ...rest} = state;
+  return {...rest, params: params || {}, modifiers: modifiers || []};
+}
+
+/**
+ * Removes modifiers from location
+ * @param {NavigatorState} location
+ * @param {string[]} excludeModifiers
+ * @returns {NavigatorState}
+ */
+export function removeModifiers(
+  location: NavigatorState,
+  excludeModifiers: string[],
+): NavigatorState {
+  const {modifiers, ...rest} = location;
+
+  return {
+    ...rest,
+    modifiers: modifiers.filter(m => !excludeModifiers.includes(m)),
+  };
+}
+
+/**
+ * Removes modifiers from location
+ * @param {NavigatorState} location
+ * @param appendModifiers
+ * @returns {NavigatorState}
+ */
+export function appendModifiers(
+  location: NavigatorState,
+  appendModifiers: string[],
+): NavigatorState {
+  const {modifiers, ...rest} = location;
+
+  return {
+    ...rest,
+    modifiers: [...modifiers, ...appendModifiers],
+  };
 }

@@ -1,52 +1,123 @@
-import {Navigator} from '../Navigator';
 import {
   EventListenerFunc,
   EventType,
-  NavigatorLocationType,
-  SetLocationOptions,
-} from '../types';
-import {parseSegue, createSegue} from '../utils';
+  Navigator,
+  NavigatorSimplifiedState,
+  NavigatorState, removeModifiers,
+  fulfillState, appendModifiers,
+} from '../Navigator';
+import {createLink, isBrowserState, parseLink} from './utils';
 import {
-  BrowserHistoryState,
-  BrowserNavigatorInitOptions,
+  BrowserHistoryState, BrowserNavigatorStateType,
+  IBrowserNavigator,
+  InitOptions, StateActionOptions,
 } from './types';
-import {isBrowserState} from './utils';
+import {BACK_MOD, REPLACE_MOD, SKIP_MOD} from './constants';
 
-export class BrowserNavigator {
+export class BrowserNavigator implements IBrowserNavigator {
   private readonly navigator = new Navigator();
   private hash: string | null = null;
+  private isMounted = false;
   private originalPushState = window.history.pushState.bind(window.history);
   private originalReplaceState = window.history.replaceState
     .bind(window.history);
 
   /**
+   * Simplified version of original window.history.pushState
+   * @param historyState
+   * @param state
+   * @returns {any}
+   * @private
+   */
+  private _pushState(historyState: any, state: NavigatorState) {
+    return this.originalPushState(
+      this.createHistoryState(historyState),
+      '',
+      createLink(state),
+    );
+  }
+
+  /**
+   * Simplified version of original window.history.replaceState
+   * @param historyState
+   * @param state
+   * @returns {any}
+   * @private
+   */
+  private _replaceState(historyState: any, state: NavigatorState) {
+    return this.originalReplaceState(
+      this.createHistoryState(historyState),
+      '',
+      createLink(state),
+    );
+  }
+
+  /**
    * Event listener which watches for popstate event and calls Navigator
    * location update
+   * @param {PopStateEvent} e
+   * @returns {any}
    */
   private onPopState = (e: PopStateEvent) => {
     const prevHash = this.hash;
     this.hash = window.location.hash;
 
     // If current location already has correct state, it means, it was added
-    // by navigator
+    // by navigator. So we could get state index and move to it
     if (isBrowserState(e.state)) {
-      // We have to calculate delta to determine which direction we should
-      // choose
-      const delta = e.state.navigator.locationIndex -
-        this.navigator.locationIndex;
+      const nextIndex = e.state.navigator.index;
+      const initialDelta = nextIndex - this.index;
 
-      // Move only in distance changed
-      if (delta !== 0) {
-        // Update navigator state and get, how really much distance changed
-        const {delta: navigatorDelta} = this.navigator.go(delta);
+      if (initialDelta === 0) {
+        return;
+      }
+      const direction = initialDelta > 0 ? 'forward' : 'backward';
 
-        // Calculate how many more steps we have to do
-        const additionalDelta = navigatorDelta - delta;
+      // We have a case when nextIndex refers to location which should be
+      // slided (has "skip" modifier). So, we have to slide until non-slideable
+      // location is found. In case, it cannot be found, we should go the
+      // opposite direction from nextIndex
+      const {index, history} = this.navigator;
+      const state = history[nextIndex];
+      let delta = initialDelta;
 
-        // In case, more steps required, do them
-        if (additionalDelta !== 0) {
-          this.go(additionalDelta);
+      if (state.modifiers.includes(SKIP_MOD)) {
+        const testStack = direction === 'forward'
+          ? [
+            ...history.slice(nextIndex + 1),
+            ...history
+              .slice(index + 1, nextIndex)
+              .reverse(),
+          ]
+          : [
+            ...history.slice(0, nextIndex).reverse(),
+            ...history.slice(nextIndex + 1, index),
+          ];
+
+        const compatibleLocation = testStack.find(l => {
+          return !l.modifiers.includes(SKIP_MOD);
+        });
+
+        delta = compatibleLocation
+          ? history.indexOf(compatibleLocation) - index
+          : 0;
+      }
+
+      if (delta === 0) {
+        if (direction === 'forward') {
+          return this.back();
         }
+        return this.forward();
+      }
+
+      this.navigator.go(delta);
+
+      // Calculate how many more steps we have to do
+      const additionalDelta = delta - initialDelta;
+
+      // In case, more steps required, do them
+      if (additionalDelta !== 0) {
+        this.go(additionalDelta);
       }
 
       return;
@@ -54,270 +125,192 @@ export class BrowserNavigator {
 
     // If state is incorrect, it means, this location is new for this navigator
     // Try parsing it
-    const location = parseSegue(this.hash);
+    const state = parseLink(this.hash);
 
-    // In case, location cannot be extracted, prevent routing and throw error
-    if (location === null) {
+    // In case, state cannot be extracted, prevent routing and throw error
+    if (state === null) {
       this.back();
-      throw new Error('Unable to extract location from popstate event');
+      throw new Error('Unable to extract state from popstate event');
     }
 
-    // In case, prev segue is equal to current one, browser will not push
-    // new history item and we are doing it instead of him
+    const {modifiers} = state;
+    const hasBackMod = modifiers.includes(BACK_MOD);
+    const hasReplaceMod = modifiers.includes(REPLACE_MOD);
+
+    // In case, prev hash is equal to current one, browser will not push
+    // new history item and we are doing actions instead of him
     if (prevHash === this.hash) {
-      return this.pushLocation(location);
+      // If we found a replace modifier, just ignore this event, due to
+      // we will replace current state with the same one
+      if (hasReplaceMod) {
+        return;
+      }
+      // If back modifier met, just go back
+      if (hasBackMod) {
+        return this.back();
+      }
+      // Ot just push new state
+      return this.pushState(state);
     }
 
-    // Otherwise, location was pushed natively. So, we push it into navigator
-    // and replace browser history state
-    const {
-      location: parsedLocation, delta,
-    } = this.navigator.processLocation(location);
+    if (hasBackMod || hasReplaceMod) {
+      const skipState = fulfillState({view: '', modifiers: [SKIP_MOD]});
 
-    this.originalReplaceState(
-      this.createHistoryState(
-        e.state,
-        delta < 0
-          ? this.navigator.locationIndex - delta
-          : this.navigator.locationIndex,
-      ),
-      '',
-      createSegue(parsedLocation),
-    );
+      this.navigator.pushState(skipState, {drop: true, silent: true});
+      this._replaceState(e.state, skipState);
 
-    if (delta < 0) {
-      this.go(delta);
+      if (hasBackMod) {
+        return this.go(-2);
+      }
+
+      // Go to previous location
+      this.navigator.go(-1, {silent: true});
+      this.navigator.replaceState(
+        removeModifiers(state, [REPLACE_MOD]), {silent: true},
+      );
+
+      return this.go(-2);
     }
+
+    this.navigator.pushState(state, {drop: true});
+    this._replaceState(e.state, state);
   };
 
   /**
    * Creates state for browser's history
    * @param data
-   * @param locationIndex
-   * @param locationsStack
+   * @param index
+   * @param history
    * @returns {BrowserHistoryState}
    */
   private createHistoryState(
     data: any = null,
-    locationIndex = this.navigator.locationIndex,
-    locationsStack = this.navigator.locationsStack,
+    index = this.navigator.index,
+    history = this.navigator.history,
   ): BrowserHistoryState {
-    return {
-      state: data,
-      navigator: {locationIndex, locationsStack},
+    return {state: data, navigator: {index, history}};
+  }
+
+  /**
+   * Returns handler for window.history.pushState or window.history.replaceState
+   * @param {(state: (NavigatorState | NavigatorSimplifiedState)) => void} f
+   * @returns {(data: any, title: string, url?: (string | null)) => void}
+   */
+  private getHistoryMethodHandler = (
+    f: (state: NavigatorState | NavigatorSimplifiedState) => void,
+  ) => {
+    return (data: any, title: string, url?: string | null) => {
+      if (!url) {
+        throw new Error('Unable to process empty url');
+      }
+      const state = parseLink(url);
+
+      if (state === null) {
+        throw new Error('Unable to extract state from passed url');
+      }
+      f.call(this, state);
     };
-  }
+  };
 
   /**
-   * Prepares location and uses original window's pushState method
-   * @param {NavigatorLocationType} location
-   * @param data
-   * @param {SetLocationOptions} options
+   * Prepares state and uses original window's pushState method
+   * @param {BrowserNavigatorStateType} state
+   * @param {StateActionOptions} options
    */
-  private pushState(
-    location: NavigatorLocationType,
-    options: SetLocationOptions = {},
-    data: any = null,
+  pushState(
+    state: BrowserNavigatorStateType,
+    options: StateActionOptions = {},
   ) {
-    // Save navigator location index in case, location
-    const {
-      location: parsedLocation, delta,
-    } = this.navigator.processLocation(location, options);
-
-    // Call original pushState
-    this.originalPushState(
-      this.createHistoryState(
-        data,
-        delta < 0
-          // If it was back location, we should get location index of inserted
-          // skip location
-          ? this.navigator.locationIndex - delta
-          : this.navigator.locationIndex,
-      ),
-      '',
-      createSegue(parsedLocation),
-    );
-
-    // If it was back location we should go back. We do subtract 1 more because
-    // previously, new state was added
-    if (delta < 0) {
-      this.go(delta - 1);
-    }
+    const navigatorState = fulfillState(state);
+    const formattedState = options.oneTime
+      ? appendModifiers(navigatorState, [SKIP_MOD])
+      : navigatorState;
+    this.navigator.pushState(formattedState, {...options, drop: true});
+    this._pushState(null, formattedState);
   }
 
   /**
-   * Prepares location and uses original window's replaceState method
-   * @param {NavigatorLocationType} location
-   * @param {SetLocationOptions} options
-   * @param data
+   * Prepares state and uses original window's replaceState method
+   * @param {BrowserNavigatorStateType} state
+   * @param {StateActionOptions} options
    */
-  private replaceState(
-    location: NavigatorLocationType,
-    options: SetLocationOptions = {},
-    data: any = null,
+  replaceState(
+    state: BrowserNavigatorStateType,
+    options: StateActionOptions = {},
   ) {
-    // Save navigator location index in case, location
-    const {
-      location: parsedLocation, delta,
-    } = this.navigator.replaceLocation(location, options);
-
-    // Call original replaceState
-    this.originalReplaceState(
-      this.createHistoryState(
-        data,
-        location.modifiers?.includes('back')
-          // If it was back location, we should get location index of inserted
-          // skip location
-          ? this.navigator.locationIndex - delta
-          : this.navigator.locationIndex,
-      ),
-      '',
-      createSegue(parsedLocation),
-    );
-
-    // If it was back location we should go back
-    if (delta < 0) {
-      this.go(delta);
-    }
+    const navigatorState = fulfillState(state);
+    const formattedState = options.oneTime
+      ? appendModifiers(navigatorState, [SKIP_MOD])
+      : navigatorState;
+    this.navigator.replaceState(formattedState, options);
+    this._replaceState(null, formattedState);
   }
 
-  /**
-   * Returns current location. Read-only property
-   */
-  get location() {
-    return this.navigator.location;
-  }
-
-  /**
-   * Returns current location index
-   * @returns {number}
-   */
-  get locationIndex() {
-    return this.navigator.locationIndex;
-  }
-
-  /**
-   * Returns current history
-   * @returns {NavigatorCompleteLocationType[]}
-   */
-  get history() {
-    return this.navigator.locationsStack;
-  }
-
-  /**
-   * Pushes new location adding it to locations stack
-   * @param {NavigatorLocationType} location
-   * @param {SetLocationOptions} options
-   */
-  pushLocation(
-    location: NavigatorLocationType,
-    options: SetLocationOptions = {},
-  ) {
-    this.pushState(location, options);
-  }
-
-  /**
-   * Replaces current location with new one
-   * @param {NavigatorLocationType} location
-   * @param {SetLocationOptions} options
-   */
-  replaceLocation(
-    location: NavigatorLocationType,
-    options: SetLocationOptions = {},
-  ) {
-    this.replaceState(location, options);
-  }
-
-  /**
-   * Overrides history functions and adds event listener to popstate event
-   */
   mount() {
-    // Override pushState and fulfill with navigators data
-    window.history.pushState = (
-      data: any,
-      title: string,
-      url?: string | null,
-    ) => {
-      const parsedLocation = parseSegue(url || '');
-
-      if (parsedLocation === null) {
-        throw new Error(
-          'Unable to extract location from passed url to pushState',
-        );
-      }
-      this.pushState(parsedLocation);
-    };
-
-    // Override replaceState and fulfill with navigators data
-    window.history.replaceState = (
-      data: any,
-      title: string,
-      url?: string | null,
-    ) => {
-      const parsedLocation = parseSegue(url || '');
-
-      if (parsedLocation === null) {
-        throw new Error(
-          'Unable to extract location from passed url to replaceState',
-        );
-      }
-      this.replaceState(parsedLocation);
-    };
+    if (this.isMounted) {
+      return;
+    }
+    window.history.pushState = this.getHistoryMethodHandler(this.pushState);
+    window.history.replaceState = this.getHistoryMethodHandler(this.replaceState);
     window.addEventListener('popstate', this.onPopState);
+    this.isMounted = true;
   }
 
-  /**
-   * Cancels all history functions rewires and removes event listener
-   */
   unmount() {
+    if (!this.isMounted) {
+      return;
+    }
     window.history.pushState = this.originalPushState;
     window.history.replaceState = this.originalReplaceState;
     window.removeEventListener('popstate', this.onPopState);
+    this.isMounted = false;
   }
 
-  /**
-   * Initializes navigator. Adds all required listeners and rewires functions.
-   * If options are passed, it will initialize navigator with them. Otherwise
-   * will try to do it by himself
-   * @param {BrowserNavigatorInitOptions} options
-   */
-  init(options?: BrowserNavigatorInitOptions) {
+  init(options?: InitOptions) {
     this.mount();
+    let state: NavigatorState | null = null;
+    let history: NavigatorState[] | null = null;
 
     if (options) {
-      this.navigator.init(options.locationIndex, options.locationsStack);
+      state = options.state;
+      history = options.history;
     }
-    // In case, history length is 1, it means, we are currently on the first
-    // its item. So then, we should replace current state with new one
+    // In case, browser's history length is 1, it means, we are currently on
+    // the first its item. So then, we should replace current state with new one
     // compatible to navigator
     else if (window.history.length === 1) {
-      this.replaceState({modifiers: ['root']}, {silent: true});
+      state = {
+        view: '',
+        params: {},
+        modifiers: ['root'],
+      };
+      history = [state];
+    }
+
+    if (state && history) {
+      this.navigator.init(state, history);
+      this._replaceState(null, state);
     }
   }
 
-  /**
-   * Removes last pushed location from routing stack
-   * @type {any}
-   */
+  get state() {
+    return this.navigator.state;
+  }
+
+  get index() {
+    return this.navigator.index;
+  }
+
+  get history() {
+    return this.navigator.history;
+  }
+
   back = window.history.back.bind(window.history);
 
-  /**
-   * Goes forward through routing stack
-   * @type {any}
-   */
   forward = window.history.forward.bind(window.history);
 
-  /**
-   * Goes through routing stack with passed delta
-   * @type {any}
-   */
   go = window.history.go.bind(window.history);
 
-  /**
-   * Adds listener for specified event
-   * @param {E} event
-   * @param {EventListenerFunc<E>} listener
-   */
   on<E extends EventType>(
     event: E,
     listener: EventListenerFunc<E>,
@@ -325,11 +318,6 @@ export class BrowserNavigator {
     this.navigator.on(event, listener);
   };
 
-  /**
-   * Removes listener from specified event
-   * @param {E} event
-   * @param {EventListenerFunc<E>} listener
-   */
   off<E extends EventType>(
     event: E,
     listener: EventListenerFunc<E>,
