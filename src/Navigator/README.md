@@ -13,46 +13,46 @@ connected with navigation.
 If you are developing application which works with browser history you probably
 need [BrowserNavigator](https://github.com/wolframdeus/mini-apps-navigation/tree/master/src/BrowserNavigator/README.md).
 
-# Properties
-## `index: number`
+## Properties
+### `index: number`
 Returns current state index in history.
 
-## `state: NavigatorState`
+### `state: NavigatorState`
 Returns current state. In case, no states were pushed previously, throws an 
 error.
 
-## `history: NavigatorState[]`
+### `history: NavigatorState[]`
 Returns navigation history.
 
-## `pushState(state: NavigatorState, options?: PushStateOptions}): void`
+### `pushState(state: NavigatorState, options?: PushStateOptions}): void`
 *Could be called silently. It means, no event listeners will be called*
 
 Pushes new state on specified index. In case, index is not specified, navigator
 will insert state on current position
 
-## `replaceState(state: NavigatorState, options?: ReplaceLocationOptions}): void`
+### `replaceState(state: NavigatorState, options?: ReplaceLocationOptions}): void`
 *Could be called silently. It means, no event listeners will be called*
 
 Replaces state on specified index. In case, index is not specified, navigator
 will take current position
 
-## `go(delta: number, options?: GoOptions): void`
+### `go(delta: number, options?: GoOptions): void`
 *Could be called silently. It means, no event listeners will be called*
 
 Moves forward or backward on specified delta. In case, delta is out of bounds,
 it will be changed to one of bounds values.
 
-## `goTo(index: number, options?: GoOptions): void`
+### `goTo(index: number, options?: GoOptions): void`
 *Could be called silently. It means, no event listeners will be called*
 
 Goes to specified index. In case, delta is out of bounds, it will be changed to 
 one of bounds values.
 
-## `init(state: NavigatorState, history: NavigatorState[]): void`
+### `init(state: NavigatorState, history: NavigatorState[]): void`
 Sets initial values for navigator.
 
-## `on<E extends EventType>(event: E, listener: EventListenerFunc<E>): void`
+### `on<E extends EventType>(event: E, listener: EventListenerFunc<E>): void`
 Adds listener for specified event.
 
-## `off<E extends EventType>(event: E, listener: EventListenerFunc<E>): void`
+### `off<E extends EventType>(event: E, listener: EventListenerFunc<E>): void`
 Removes listener for specified event.

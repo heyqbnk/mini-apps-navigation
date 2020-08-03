@@ -10,30 +10,30 @@ which contains current location index and location history.
 - [Class definition](https://github.com/wolframdeus/mini-apps-navigation/blob/master/src/BrowserNavigator/BrowserNavigator.ts)
 - [Other type definitions](https://github.com/wolframdeus/mini-apps-navigation/blob/master/src/BrowserNavigator/types.ts)
 
-# Properties
-## `pushState(state: BrowserNavigatorStateType, options?: StateActionOptions): void`
+## Properties
+### `pushState(state: BrowserNavigatorStateType, options?: StateActionOptions): void`
 Prepares state, pushes state via Navigator and uses original window's pushState
 method.
 
-## `replaceState(state: BrowserNavigatorStateType, options?: StateActionOptions): void`
+### `replaceState(state: BrowserNavigatorStateType, options?: StateActionOptions): void`
 Prepares state, replaces state via Navigator and uses original window's
 replaceState method.
 
-## `mount(): void`
+### `mount(): void`
 Overrides history functions and adds event listener to popstate event.
 
-## `unmount(): void`
+### `unmount(): void`
 Cancels all history functions rewires and removes event listener.
 
-## `back(): void`
+### `back(): void`
 Calls `window.history.back()`.
 
-## `forward(): void`
+### `forward(): void`
 Calls `window.history.forward()`.
 
-## `go(delta?: number): void`
+### `go(delta?: number): void`
 Calls `window.history.go(delta)`.
 
-# Properties picked from `Navigator`
+## Properties picked from `Navigator`
 These properties are: `on`, `off`, `state`, `history` and `index`. To
 learn more, follow this [link](https://github.com/wolframdeus/mini-apps-navigation/tree/master/src/Navigator/README.md#Properties).
