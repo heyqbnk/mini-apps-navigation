@@ -5,7 +5,7 @@ lines of code, which are written mostly to interact with browser's history.
 
 It rewires such functions as `window.history.pushState` and 
 `window.history.replaceState`, so then, each history item has stable state,
-which contains current location index and location history.
+which contains current state index and navigation history.
 
 - [Class definition](https://github.com/wolframdeus/mini-apps-navigation/blob/master/src/BrowserNavigator/BrowserNavigator.ts)
 - [Other type definitions](https://github.com/wolframdeus/mini-apps-navigation/blob/master/src/BrowserNavigator/types.ts)

@@ -3,7 +3,7 @@ import {MakePartial, State} from '../../types';
 
 export interface NavigatorState extends State {
   /**
-   * List of modifiers which are applied to current location. Each modifier
+   * List of modifiers which are applied to current state. Each modifier
    * has its own influence on navigator's behaviour. These modifiers are mostly
    * used by Navigator and has a design character
    */
@@ -16,7 +16,7 @@ export interface NavigatorSimplifiedState
 
 export interface ChangeLocationResult {
   /**
-   * States how much location index was changed
+   * States how much state index changed
    */
   delta: number;
 
@@ -50,13 +50,13 @@ export interface SilentOption {
 
 export interface PushStateOptions extends SilentOption {
   /**
-   * Position index where location should be inserted
-   * @default Current locationIndex
+   * Position index where state should be inserted
+   * @default Current index
    */
   index?: number;
 
   /**
-   * Should all locations after passed index be dropped
+   * Should all states after passed index be dropped
    * @default false
    */
   drop?: boolean;
@@ -64,8 +64,8 @@ export interface PushStateOptions extends SilentOption {
 
 export interface ReplaceLocationOptions extends SilentOption {
   /**
-   * Position index where location should be replaced
-   * @default Current locationIndex
+   * Position index where state should be replaced
+   * @default Current index
    */
   index?: number;
 }
@@ -90,8 +90,7 @@ export interface INavigator {
   history: NavigatorState[];
 
   /**
-   * Creates state on current position, removing each location
-   * after it, until opposite is stated
+   * Pushes new state on specified index
    * @param state
    * @param {PushStateOptions} options
    */
@@ -101,7 +100,7 @@ export interface INavigator {
   ): void;
 
   /**
-   * Replaces current location with new one
+   * Replaces current state with new one
    * @param state
    * @param {ReplaceLocationOptions} options
    */
@@ -111,7 +110,7 @@ export interface INavigator {
   ): void;
 
   /**
-   * Goes through stack and reassigns current location. Returns
+   * Goes through stack and reassigns current state. Returns
    * navigation change results
    * @param {number} delta
    * @param {GoOptions} options
@@ -120,7 +119,7 @@ export interface INavigator {
   go(delta: number, options?: GoOptions): ChangeLocationResult;
 
   /**
-   * Goes to location on specified index
+   * Goes to state on specified index
    * @param {number} index
    * @param {GoOptions} options
    * @returns {ChangeLocationResult}

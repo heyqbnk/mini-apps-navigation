@@ -54,7 +54,7 @@ export class BrowserNavigator implements IBrowserNavigator {
 
   /**
    * Event listener which watches for popstate event and calls Navigator
-   * location update
+   * state update
    * @param {PopStateEvent} e
    * @returns {any}
    */
@@ -62,8 +62,8 @@ export class BrowserNavigator implements IBrowserNavigator {
     const prevHash = this.hash;
     this.hash = window.location.hash;
 
-    // If current location already has correct state, it means, it was added
-    // by navigator. So we could get state index and move to it
+    // If current state already has correct browser state, it means, it was
+    // added by navigator. So we could get state index and move to it
     if (isBrowserState(e.state)) {
       const nextIndex = e.state.navigator.index;
       const initialDelta = nextIndex - this.index;
@@ -73,9 +73,9 @@ export class BrowserNavigator implements IBrowserNavigator {
       }
       const direction = initialDelta > 0 ? 'forward' : 'backward';
 
-      // We have a case when nextIndex refers to location which should be
+      // We have a case when nextIndex refers to state which should be
       // slided (has "skip" modifier). So, we have to slide until non-slideable
-      // location is found. In case, it cannot be found, we should go the
+      // state is found. In case, it cannot be found, we should go the
       // opposite direction from nextIndex
       const {index, history} = this.navigator;
       const state = history[nextIndex];
@@ -122,9 +122,6 @@ export class BrowserNavigator implements IBrowserNavigator {
 
       return;
     }
-
-    // If state is incorrect, it means, this location is new for this navigator
-    // Try parsing it
     const state = parseLink(this.hash);
 
     // In case, state cannot be extracted, prevent routing and throw error
@@ -162,8 +159,6 @@ export class BrowserNavigator implements IBrowserNavigator {
       if (hasBackMod) {
         return this.go(-2);
       }
-
-      // Go to previous location
       this.navigator.go(-1, {silent: true});
       this.navigator.replaceState(
         removeModifiers(state, [REPLACE_MOD]), {silent: true},

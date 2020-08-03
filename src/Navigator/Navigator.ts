@@ -117,7 +117,7 @@ export class Navigator implements INavigator {
     // Save prev history
     const prevHistory = this.history;
 
-    // If drop is required, drop locations after inserted one
+    // If drop is required, drop states after inserted one
     if (drop) {
       this._history = [...this._history.slice(0, index), state];
     }

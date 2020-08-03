@@ -13,16 +13,16 @@ export function fulfillState(
 }
 
 /**
- * Removes modifiers from location
- * @param {NavigatorState} location
+ * Removes modifiers from state
+ * @param state
  * @param {string[]} excludeModifiers
  * @returns {NavigatorState}
  */
 export function removeModifiers(
-  location: NavigatorState,
+  state: NavigatorState,
   excludeModifiers: string[],
 ): NavigatorState {
-  const {modifiers, ...rest} = location;
+  const {modifiers, ...rest} = state;
 
   return {
     ...rest,
@@ -31,16 +31,16 @@ export function removeModifiers(
 }
 
 /**
- * Removes modifiers from location
- * @param {NavigatorState} location
+ * Adds modifiers to state
+ * @param state
  * @param appendModifiers
  * @returns {NavigatorState}
  */
 export function appendModifiers(
-  location: NavigatorState,
+  state: NavigatorState,
   appendModifiers: string[],
 ): NavigatorState {
-  const {modifiers, ...rest} = location;
+  const {modifiers, ...rest} = state;
 
   return {
     ...rest,

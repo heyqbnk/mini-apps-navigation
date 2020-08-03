@@ -3,7 +3,7 @@ import {ParsedUrlQuery} from 'querystring';
 
 export interface State {
   /**
-   * Current view. It is main and required part of location due to application
+   * Current view. It is main and required part of state due to application
    * cannot exist without view currently displayed
    */
   view: string;
@@ -21,7 +21,7 @@ export interface State {
   popup?: Maybe<string>;
 
   /**
-   * Current location parameters. In Web world, they are query-parameters
+   * Current state parameters. In Web world, they are query-parameters
    * but renamed to avoid binding to Web
    */
   params: ParsedUrlQuery;
