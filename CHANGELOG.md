@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.0.4](https://github.com/wolframdeus/mini-apps-navigation/compare/v2.0.3...v2.0.4) (2020-08-03)
+
+
+### Bug Fixes
+
+* **navigator:** make state nullable ([d15ab31](https://github.com/wolframdeus/mini-apps-navigation/commit/d15ab31663e45e5891ab6692e914db04d1cb3c2b))
+
 ### [2.0.3](https://github.com/wolframdeus/mini-apps-navigation/compare/v2.0.2...v2.0.3) (2020-08-03)
 
 
