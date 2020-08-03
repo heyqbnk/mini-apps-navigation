@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.0.6](https://github.com/wolframdeus/mini-apps-navigation/compare/v2.0.5...v2.0.6) (2020-08-03)
+
+
+### Bug Fixes
+
+* **onpopstate:** renew state when correct H state met ([50a70b3](https://github.com/wolframdeus/mini-apps-navigation/commit/50a70b3c8b26db18f973c86180480c12a16f09e2))
+
 ### [2.0.5](https://github.com/wolframdeus/mini-apps-navigation/compare/v2.0.4...v2.0.5) (2020-08-03)
 
 
