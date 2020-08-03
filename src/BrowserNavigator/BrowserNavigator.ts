@@ -112,6 +112,12 @@ export class BrowserNavigator implements IBrowserNavigator {
 
       this.navigator.go(delta);
 
+      // We have to renew current history item state
+      const navigatorState = this.navigator.state;
+      if (navigatorState) {
+        this._replaceState(e.state.state, navigatorState);
+      }
+
       // Calculate how many more steps we have to do
       const additionalDelta = delta - initialDelta;
 
